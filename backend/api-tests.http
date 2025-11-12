@@ -1,0 +1,387 @@
+### ============================================
+### SipSpot API 测试集合 - REST Client 版
+### ============================================
+
+### 1️⃣ 配置环境变量（修改这里的值）
+@baseUrl = http://localhost:5001/api
+@email = abraham1@example.com
+@password = new123456
+@username = abraham2
+
+### ============================================
+### 🔐 认证相关测试
+### ============================================
+
+### 2️⃣ 用户注册
+# 功能：创建新用户账号
+# 点击下方的 "Send Request" 发送
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 3️⃣ 用户登录（保存 Token）
+# 功能：登录并获取访问令牌
+# 成功后，手动复制响应中的 token 到下面的 @token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "identifier": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 📌 把上面响应中的 token 复制到这里
+@token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTQ2YThmYTgzODE3YTU4ZDI0ZGFkOSIsInJvbGUiOiJ1c2VyIiwidXNlcm5hbWUiOiJhYnJhaGFtMiIsImlhdCI6MTc2Mjk0NzgzMCwiZXhwIjoxNzYzNTUyNjMwfQ.I47dK08MTlrjXJqWaPfU0gcG_k3fKFPIELV228PDPNY
+
+### 4️⃣ 获取当前用户信息
+# 功能：查看登录用户的详细资料
+# 需要登录（使用上面的 token）
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 5️⃣ 更新用户资料
+# 功能：修改用户名、邮箱、头像等
+PUT {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "abraham2",
+  "bio": "咖啡爱好者 ☕"
+}
+
+### 6️⃣ 修改密码
+# 功能：更改账户密码
+PUT {{baseUrl}}/auth/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "new123456"
+}
+
+### 7️⃣ 请求密码重置
+# 功能：忘记密码时发送重置邮件
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### 8️⃣ 刷新 Token
+# 功能：使用 refresh token 获取新的访问令牌
+@refreshToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTQ2YThmYTgzODE3YTU4ZDI0ZGFkOSIsImlhdCI6MTc2Mjk0NzgzMCwiZXhwIjoxNzY1NTM5ODMwfQ.WaUOwmv6fW4Ag4paazNzI0RyZd0ydRlqT5mYIngSAH8
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 9️⃣ 登出
+# 功能：退出登录（清除客户端 token）
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}
+
+### ============================================
+### ☕ 咖啡店相关测试
+### ============================================
+
+### 🔟 获取所有咖啡店（分页）
+# 功能：浏览咖啡店列表
+# 参数：page=页码, limit=每页数量, sort=排序方式
+GET {{baseUrl}}/cafes?page=1&limit=20&sort=-rating
+
+### 1️⃣1️⃣ 搜索咖啡店
+# 功能：按名称或描述搜索
+GET {{baseUrl}}/cafes/search?q=星巴克&city=北京&minRating=4
+
+### 1️⃣2️⃣ 附近的咖啡店（地理位置查询）
+# 功能：查找指定坐标附近的店
+# lng=经度, lat=纬度, distance=范围（米）
+GET {{baseUrl}}/cafes/nearby?lng=116.404&lat=39.915&distance=5000&limit=10
+
+### 1️⃣3️⃣ 获取评分最高的咖啡店
+# 功能：查看 Top 排行榜
+GET {{baseUrl}}/cafes/top/rated?limit=10&city=北京
+
+### 1️⃣4️⃣ 按设施筛选咖啡店
+# 功能：查找有 WiFi 和插座的店
+GET {{baseUrl}}/cafes/amenities/WiFi,Power%20Outlets?city=北京&limit=20
+
+### 1️⃣5️⃣ 获取单个咖啡店详情
+# 功能：查看店铺完整信息（含评论）
+@cafeId = 691477799e6090115750563a
+GET {{baseUrl}}/cafes/{{cafeId}}
+
+### 1️⃣6️⃣ 获取咖啡店统计数据
+# 功能：查看评分分布、访问量等
+GET {{baseUrl}}/cafes/{{cafeId}}/stats
+
+### 1️⃣7️⃣ 创建咖啡店（需要登录）
+# 功能：添加新的咖啡店
+POST {{baseUrl}}/cafes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "云朵咖啡",
+  "description": "一家温馨的精品咖啡店，专注手冲咖啡，环境安静适合工作学习。",
+  "address": "北京市朝阳区建国路88号",
+  "city": "北京",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [116.404, 39.915]
+  },
+  "price": 3,
+  "amenities": ["WiFi", "Power Outlets", "Quiet", "Laptop Friendly"],
+  "specialty": "Pour Over",
+  "phoneNumber": "010-12345678",
+  "website": "https://example.com"
+}
+
+### 1️⃣8️⃣ 更新咖啡店信息（需要是店主或管理员）
+# 功能：修改店铺资料
+PUT {{baseUrl}}/cafes/{{cafeId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "更新后的描述文字",
+  "price": 2,
+  "amenities": ["WiFi", "Outdoor Seating"]
+}
+
+### 1️⃣9️⃣ 删除咖啡店（需要是店主或管理员）
+# 功能：删除店铺
+# ⚠️ 谨慎操作！会同时删除所有评论
+DELETE {{baseUrl}}/cafes/{{cafeId}}
+Authorization: Bearer {{token}}
+
+### 2️⃣0️⃣ 收藏咖啡店（需要登录）
+# 功能：添加到我的收藏
+POST {{baseUrl}}/cafes/{{cafeId}}/favorite
+Authorization: Bearer {{token}}
+
+### 2️⃣1️⃣ 取消收藏（需要登录）
+# 功能：从收藏中移除
+DELETE {{baseUrl}}/cafes/{{cafeId}}/favorite
+Authorization: Bearer {{token}}
+
+### ============================================
+### ⭐ 评论相关测试
+### ============================================
+
+### 2️⃣2️⃣ 获取咖啡店的所有评论
+# 功能：查看店铺评论列表
+GET {{baseUrl}}/cafes/{{cafeId}}/reviews?page=1&limit=10&sort=-createdAt
+
+### 2️⃣3️⃣ 获取最有帮助的评论
+# 功能：查看点赞最多的评论
+GET {{baseUrl}}/cafes/{{cafeId}}/reviews/helpful?limit=5
+
+### 2️⃣4️⃣ 获取评论情感统计
+# 功能：查看正面/负面/中性评论占比
+GET {{baseUrl}}/cafes/{{cafeId}}/reviews/sentiment
+
+### 2️⃣5️⃣ 获取单个评论详情
+# 功能：查看某条评论的完整内容
+@reviewId = 6914789f9e60901157505655
+GET {{baseUrl}}/reviews/{{reviewId}}
+
+### 2️⃣6️⃣ 创建评论（需要登录）
+# 功能：发表新评论
+# ⚠️ 每个用户对每个店只能评论一次
+POST {{baseUrl}}/cafes/{{cafeId}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "这家店环境很棒，咖啡味道也不错，服务员态度很好。就是价格稍微有点贵，但总体来说值得推荐！",
+  "rating": 4.5,
+  "detailedRatings": {
+    "coffee": 4.5,
+    "ambience": 5,
+    "service": 5,
+    "value": 3.5
+  },
+  "visitDate": "2024-01-15"
+}
+
+### 2️⃣7️⃣ 更新评论（需要是评论作者）
+# 功能：修改自己的评论
+PUT {{baseUrl}}/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "更新后的评论内容...",
+  "rating": 5
+}
+
+### 2️⃣8️⃣ 删除评论（需要是评论作者或管理员）
+# 功能：删除评论
+DELETE {{baseUrl}}/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+
+### 2️⃣9️⃣ 给评论投票（有帮助/无帮助）
+# 功能：标记评论是否有用
+POST {{baseUrl}}/reviews/{{reviewId}}/helpful
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "voteType": "helpful"
+}
+
+### 3️⃣0️⃣ 取消投票
+# 功能：撤销之前的投票
+DELETE {{baseUrl}}/reviews/{{reviewId}}/helpful
+Authorization: Bearer {{token}}
+
+### 3️⃣1️⃣ 举报评论（需要登录）
+# 功能：标记不当评论
+POST {{baseUrl}}/reviews/{{reviewId}}/report
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "包含不当内容"
+}
+
+### 3️⃣2️⃣ 店主回复评论（需要是店主或管理员）
+# 功能：对用户评论进行回应
+POST {{baseUrl}}/reviews/{{reviewId}}/response
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "感谢您的反馈！我们会继续努力提供更好的服务。"
+}
+
+### 3️⃣3️⃣ 触发 AI 分析（需要登录）
+# 功能：使用 Gemini AI 分析评论情感
+POST {{baseUrl}}/reviews/{{reviewId}}/analyze
+Authorization: Bearer {{token}}
+
+### ============================================
+### 🔧 系统测试
+### ============================================
+
+### 3️⃣4️⃣ 健康检查
+# 功能：检查服务器运行状态
+GET http://localhost:5001/health
+
+### 3️⃣5️⃣ API 根路径
+# 功能：查看 API 版本和端点列表
+GET http://localhost:5001/api
+
+### ============================================
+### 📊 批量测试场景
+### ============================================
+
+### 场景 1: 用户完整流程
+# 1. 注册 → 2. 登录 → 3. 查看个人信息 → 4. 浏览咖啡店 → 5. 创建评论
+
+### 场景 2: 搜索和筛选
+# 1. 按城市搜索 → 2. 按评分筛选 → 3. 按距离排序 → 4. 按设施过滤
+
+### 场景 3: 评论互动
+# 1. 发表评论 → 2. AI 分析 → 3. 投票 → 4. 回复 → 5. 修改
+
+### ============================================
+### 🐛 错误情况测试
+### ============================================
+
+### 测试 401 未授权错误
+# 不带 token 访问需要登录的接口
+GET {{baseUrl}}/auth/me
+
+### 测试 400 数据验证错误
+# 发送不完整的注册数据
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "ab"
+}
+
+### 测试 404 资源不存在
+# 查询不存在的咖啡店
+GET {{baseUrl}}/cafes/000000000000000000000000
+
+### 测试 409 重复创建错误
+# 用相同邮箱再次注册
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### ============================================
+### 💡 使用技巧
+### ============================================
+
+# 1. 快捷键：
+#    - Ctrl+Alt+R (Mac: Cmd+Alt+R): 发送当前请求
+#    - Ctrl+Alt+L (Mac: Cmd+Alt+L): 发送所有请求（谨慎使用！）
+
+# 2. 环境切换：
+#    可以在文件顶部定义多套环境
+#    @baseUrl_dev = http://localhost:5000/api
+#    @baseUrl_prod = https://api.sipspot.com
+
+# 3. 保存响应：
+#    点击响应面板右上角的 💾 图标可以保存响应到文件
+
+# 4. 查看历史：
+#    点击响应面板右上角的 🕐 图标查看请求历史
+
+# 5. 导入 cURL：
+#    可以直接粘贴 cURL 命令，REST Client 会自动转换
+
+### ============================================
+### 📝 测试检查清单
+### ============================================
+
+# ✅ 认证功能
+# [ ] 注册成功
+# [ ] 登录成功并获取 token
+# [ ] 获取个人信息
+# [ ] 更新资料
+# [ ] 修改密码
+
+# ✅ 咖啡店功能
+# [ ] 获取列表
+# [ ] 搜索
+# [ ] 地理位置查询
+# [ ] 创建（需登录）
+# [ ] 更新（需权限）
+# [ ] 删除（需权限）
+# [ ] 收藏/取消收藏
+
+# ✅ 评论功能
+# [ ] 获取评论列表
+# [ ] 创建评论
+# [ ] AI 分析
+# [ ] 投票
+# [ ] 店主回复
+# [ ] 删除
+
+# ✅ 错误处理
+# [ ] 401 未授权
+# [ ] 404 未找到
+# [ ] 400 验证错误
+# [ ] 409 冲突
+
+###

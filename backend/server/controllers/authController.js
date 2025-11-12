@@ -4,7 +4,7 @@
 // ============================================
 
 const User = require('../models/user');
-const ExpressError = require('../utils/ExpressError');
+const ExpressError = require('../utils/ExpressError.js');
 
 /**
  * @desc    用户注册

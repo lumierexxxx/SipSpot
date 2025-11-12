@@ -5,8 +5,9 @@
 
 const Review = require('../models/review');
 const Cafe = require('../models/cafe');
-const ExpressError = require('../utils/ExpressError');
-const axios = require('axios');
+const ExpressError = require('../utils/ExpressError.js');
+const { deleteImages } = require('../config/cloudinary');
+const { analyzeReview } = require('../config/aiService');
 
 /**
  * @desc    Get all reviews for a cafe
@@ -210,11 +211,20 @@ exports.deleteReview = async (req, res, next) => {
             await cafe.save({ validateBeforeSave: false });
         }
         
-        // Delete images from cloudinary (if needed)
-        // TODO: Implement cloudinary deletion
+        // Delete images from Cloudinary
+        if (review.images && review.images.length > 0) {
+            const publicIds = review.images.map(img => img.publicId);
+            try {
+                await deleteImages(publicIds);
+                console.log(`Deleted ${publicIds.length} review images from Cloudinary`);
+            } catch (error) {
+                console.error('Error deleting review images from Cloudinary:', error);
+                // Continue with review deletion even if image deletion fails
+            }
+        }
         
         // Delete review (will trigger rating recalculation)
-        await review.remove();
+        await review.deleteOne();
         
         res.status(200).json({
             success: true,
@@ -483,20 +493,11 @@ exports.getSentimentStats = async (req, res, next) => {
 
 /**
  * Trigger AI analysis for a review
- * Calls the Python AI service
+ * Uses Gemini API via aiService
  */
 async function triggerAIAnalysis(reviewId, content, cafeName) {
     try {
-        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-        
-        const response = await axios.post(`${aiServiceUrl}/analyze`, {
-            content,
-            cafe_name: cafeName
-        }, {
-            timeout: 10000 // 10 second timeout
-        });
-        
-        const analysisData = response.data;
+        const analysisData = await analyzeReview(content, cafeName);
         
         // Save analysis to review
         const review = await Review.findById(reviewId);

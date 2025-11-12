@@ -275,8 +275,7 @@ exports.deleteCafe = async (req, res, next) => {
         }
         
         // Delete cafe (will trigger cascade delete of reviews via middleware)
-        await cafe.remove();
-        
+        await cafe.deleteOne();        
         res.status(200).json({
             success: true,
             message: 'Cafe deleted successfully',

@@ -15,18 +15,18 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const ExpressError = require('./utils/ExpressError');
+const cookieParser = require('cookie-parser');
 
 // ============================================
 // 路由导入
 // ============================================
 const authRoutes = require('./routes/auth');
 const cafeRoutes = require('./routes/cafes');
-const nestedReviewRoutes = require('./routes/reviews'); // Nested under cafes
 const standalone = require('./routes/reviewsStandalone'); // Standalone review routes
 // ============================================
 // 数据库连接
 // ============================================
-const dbUrl = process.env.MONGODB_URI || process.env.DB_URL || 'mongodb://localhost:27017/sipspot';
+const dbUrl = process.env.MONGODB_URI || process.env.DB_URL || 'mongodb://localhost:27017/sip-spot';
 
 mongoose.connect(dbUrl, {
     useNewUrlParser: true,
@@ -86,11 +86,11 @@ const limiter = rateLimit({
 
 // 登录端点的严格限流
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 1 * 60 * 1000,
     max: 5, // 15分钟内最多5次登录尝试
     message: {
         success: false,
-        message: '登录尝试次数过多，请15分钟后再试'
+        message: '登录尝试次数过多，请1分钟后再试'
     }
 });
 
@@ -156,6 +156,7 @@ app.use('/api/reviews', limiter, standalone);
 // router.use('/:cafeId/reviews', reviewRoutes);
 // 这样就可以访问 /api/cafes/:cafeId/reviews
 // ============================================
+app.use(cookieParser());
 
 // ============================================
 // 404处理
@@ -223,7 +224,7 @@ app.use((err, req, res, next) => {
 // ============================================
 // 启动服务器
 // ============================================
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const server = app.listen(PORT, () => {
     console.log('🚀 ========================================');

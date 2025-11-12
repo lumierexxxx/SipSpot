@@ -357,7 +357,7 @@ CafeSchema.methods.addAmenity = async function(amenity) {
 };
 
 /**
- * Remove amenity
+ * remove amenity
  */
 CafeSchema.methods.removeAmenity = async function(amenity) {
     this.amenities = this.amenities.filter(a => a !== amenity);
@@ -523,7 +523,7 @@ CafeSchema.post('findOneAndDelete', async function (doc) {
 });
 
 // Post-delete: Also handle remove() method
-CafeSchema.post('remove', async function (doc) {
+CafeSchema.post('deleteOne', { document: true, query: false }, async function (doc) {
     if (doc && doc.reviews && doc.reviews.length > 0) {
         await Review.deleteMany({
             _id: { $in: doc.reviews }

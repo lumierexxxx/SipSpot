@@ -382,6 +382,9 @@ userSchema.statics.findByVerificationToken = function(token) {
     });
 };
 
+userSchema.index({ 'visited.cafe': 1 });
+userSchema.index({ favorites: 1 });
+
 // ============================================
 // 导出模型
 // ============================================

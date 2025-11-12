@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, optionalAuth } = require('../middleware/auth');
+const { uploadCafeImages } = require('../config/cloudinary');
 const {
     getCafes,
     getNearby,
@@ -20,6 +21,15 @@ const {
     removeFromFavorites,
     getCafeStats
 } = require('../controllers/cafeController');
+
+// Import nested review routes
+const reviewRoutes = require('./reviews');
+
+// ============================================
+// Nested Review Routes
+// Mount review routes under /:cafeId/reviews
+// ============================================
+router.use('/:cafeId/reviews', reviewRoutes);
 
 // ============================================
 // Public Routes
@@ -89,8 +99,9 @@ router.get('/:id/stats', getCafeStats);
  * @desc    Create new cafe
  * @access  Private (Authenticated users)
  * @body    name, description, geometry, address, city, price, amenities, etc.
+ * @files   images (optional, max 10)
  */
-router.post('/', protect, createCafe);
+router.post('/', protect, uploadCafeImages, createCafe);
 
 /**
  * @route   PUT /api/cafes/:id

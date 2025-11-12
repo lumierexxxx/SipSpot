@@ -1,6 +1,6 @@
 // ============================================
-// SipSpot - JWT认证中间件
-// 替代Passport认证系统
+// SipSpot - JWT 认证中间件
+// 验证JWT token，保护需要认证的路由
 // ============================================
 
 const jwt = require('jsonwebtoken');
@@ -8,56 +8,64 @@ const User = require('../models/user');
 const ExpressError = require('../utils/ExpressError');
 
 /**
- * 验证JWT Token中间件
- * 保护需要认证的路由
+ * 保护路由中间件 - 必须登录
+ * 验证JWT token并将用户信息附加到req.user
  */
 exports.protect = async (req, res, next) => {
     try {
         let token;
         
-        // 从请求头获取token
+        // 从Authorization header获取token
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
+        }
+        // 也可以从cookie获取（如果使用cookie存储）
+        else if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
         }
         
         // 检查token是否存在
         if (!token) {
-            return next(new ExpressError('请先登录', 401));
+            return next(new ExpressError('请先登录以访问此资源', 401));
         }
         
-        // 验证token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // 查找用户
-        const user = await User.findById(decoded.id).select('-password');
-        
-        if (!user) {
-            return next(new ExpressError('用户不存在', 401));
+        try {
+            // 验证token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            // 获取用户信息（不包含密码）
+            req.user = await User.findById(decoded.id).select('-password');
+            
+            if (!req.user) {
+                return next(new ExpressError('用户不存在', 401));
+            }
+            
+            // 检查用户账户是否被禁用
+            if (!req.user.isActive) {
+                return next(new ExpressError('账户已被禁用', 403));
+            }
+            
+            next();
+            
+        } catch (error) {
+            if (error.name === 'JsonWebTokenError') {
+                return next(new ExpressError('Token无效，请重新登录', 401));
+            }
+            if (error.name === 'TokenExpiredError') {
+                return next(new ExpressError('Token已过期，请重新登录', 401));
+            }
+            throw error;
         }
-        
-        // 检查用户是否被禁用
-        if (!user.isActive) {
-            return next(new ExpressError('账户已被禁用', 403));
-        }
-        
-        // 将用户信息添加到请求对象
-        req.user = user;
-        next();
         
     } catch (error) {
-        if (error.name === 'JsonWebTokenError') {
-            return next(new ExpressError('Token无效', 401));
-        }
-        if (error.name === 'TokenExpiredError') {
-            return next(new ExpressError('Token已过期，请重新登录', 401));
-        }
-        return next(new ExpressError('认证失败', 401));
+        next(error);
     }
 };
 
 /**
  * 可选认证中间件
- * 如果有token则验证，没有token也允许通过
+ * 如果有token则验证并附加用户信息，没有token也允许继续
+ * 用于某些公开但可以根据登录状态显示不同内容的路由
  */
 exports.optionalAuth = async (req, res, next) => {
     try {
@@ -65,27 +73,42 @@ exports.optionalAuth = async (req, res, next) => {
         
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
+        } else if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
         }
         
-        if (token) {
+        // 如果没有token，直接继续
+        if (!token) {
+            return next();
+        }
+        
+        try {
+            // 验证token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.id).select('-password');
             
-            if (user && user.isActive) {
-                req.user = user;
+            // 获取用户信息
+            req.user = await User.findById(decoded.id).select('-password');
+            
+            // 即使用户不存在也继续（作为未登录用户）
+            if (req.user && !req.user.isActive) {
+                req.user = null; // 禁用的账户视为未登录
             }
+            
+        } catch (error) {
+            // Token无效或过期，作为未登录用户继续
+            req.user = null;
         }
         
         next();
+        
     } catch (error) {
-        // 忽略错误，继续执行
-        next();
+        next(error);
     }
 };
 
 /**
- * 验证管理员权限
- * 必须在 protect 中间件之后使用
+ * 授权中间件 - 检查用户角色
+ * @param {...string} roles - 允许的角色列表
  */
 exports.authorize = (...roles) => {
     return (req, res, next) => {
@@ -94,7 +117,7 @@ exports.authorize = (...roles) => {
         }
         
         if (!roles.includes(req.user.role)) {
-            return next(new ExpressError('无权访问此资源', 403));
+            return next(new ExpressError('您没有权限访问此资源', 403));
         }
         
         next();
@@ -102,47 +125,52 @@ exports.authorize = (...roles) => {
 };
 
 /**
- * 验证资源所有权
- * 检查用户是否是资源的创建者或管理员
+ * 检查是否是资源所有者或管理员
+ * @param {string} resourceField - 资源中owner字段的路径，如 'author' 或 'cafe.author'
  */
-exports.checkOwnership = (Model, paramName = 'id') => {
-    return async (req, res, next) => {
-        try {
-            const resourceId = req.params[paramName];
-            const resource = await Model.findById(resourceId);
-            
-            if (!resource) {
-                return next(new ExpressError('资源不存在', 404));
-            }
-            
-            // 管理员可以访问所有资源
-            if (req.user.role === 'admin') {
-                req.resource = resource;
-                return next();
-            }
-            
-            // 检查是否是资源所有者
-            const ownerId = resource.owner || resource.author || resource.user;
-            
-            if (!ownerId) {
-                return next(new ExpressError('无法确定资源所有者', 500));
-            }
-            
-            if (ownerId.toString() !== req.user.id) {
-                return next(new ExpressError('无权修改此资源', 403));
-            }
-            
-            req.resource = resource;
-            next();
-            
-        } catch (error) {
-            return next(new ExpressError('验证资源所有权失败', 500));
+exports.checkOwnership = (resourceField = 'author') => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return next(new ExpressError('请先登录', 401));
         }
+        
+        // 管理员可以访问任何资源
+        if (req.user.role === 'admin') {
+            return next();
+        }
+        
+        // 获取资源的owner ID
+        let ownerId;
+        
+        if (resourceField.includes('.')) {
+            // 处理嵌套字段，如 'cafe.author'
+            const fields = resourceField.split('.');
+            let obj = req;
+            for (const field of fields) {
+                obj = obj[field];
+                if (!obj) break;
+            }
+            ownerId = obj;
+        } else {
+            // 简单字段
+            ownerId = req[resourceField] || req.body[resourceField] || req.params[resourceField];
+        }
+        
+        if (!ownerId) {
+            return next(new ExpressError('无法验证资源所有权', 400));
+        }
+        
+        // 比较owner ID和当前用户ID
+        if (ownerId.toString() !== req.user.id.toString()) {
+            return next(new ExpressError('您没有权限修改此资源', 403));
+        }
+        
+        next();
     };
 };
 
 /**
- * 验证邮箱是否已验证
+ * 检查邮箱是否已验证
  */
 exports.requireEmailVerified = (req, res, next) => {
     if (!req.user) {
@@ -150,44 +178,25 @@ exports.requireEmailVerified = (req, res, next) => {
     }
     
     if (!req.user.isEmailVerified) {
-        return next(new ExpressError('请先验证邮箱', 403));
+        return next(new ExpressError('请先验证您的邮箱', 403));
     }
     
     next();
 };
 
 /**
- * 限制未认证用户的访问
- * 可以设置每日访问次数限制
+ * API密钥验证（用于服务间通信）
  */
-exports.guestLimit = (maxRequests = 10) => {
-    const guestRequests = new Map();
+exports.verifyApiKey = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
     
-    return (req, res, next) => {
-        // 已登录用户直接通过
-        if (req.user) {
-            return next();
-        }
-        
-        const ip = req.ip || req.connection.remoteAddress;
-        const today = new Date().toDateString();
-        const key = `${ip}-${today}`;
-        
-        const count = guestRequests.get(key) || 0;
-        
-        if (count >= maxRequests) {
-            return next(new ExpressError('今日访问次数已达上限，请登录以继续使用', 429));
-        }
-        
-        guestRequests.set(key, count + 1);
-        
-        // 每天清理一次缓存
-        if (count === 0) {
-            setTimeout(() => {
-                guestRequests.delete(key);
-            }, 24 * 60 * 60 * 1000);
-        }
-        
-        next();
-    };
+    if (!apiKey) {
+        return next(new ExpressError('缺少API密钥', 401));
+    }
+    
+    if (apiKey !== process.env.API_KEY) {
+        return next(new ExpressError('API密钥无效', 401));
+    }
+    
+    next();
 };

@@ -547,16 +547,17 @@ reviewSchema.post('save', async function(doc) {
 });
 
 // Post-remove: Update cafe's average rating
-reviewSchema.post('remove', async function(doc) {
-    try {
-        const Cafe = mongoose.model('Cafe');
-        const cafe = await Cafe.findById(doc.cafe);
-        
-        if (cafe) {
-            await cafe.calculateAverageRating();
+reviewSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
+    if (doc) {
+        try {
+            const Cafe = mongoose.model('Cafe');
+            const cafe = await Cafe.findById(doc.cafe);
+            if (cafe) {
+                await cafe.calculateAverageRating();
+            }
+        } catch (error) {
+            console.error('Error updating cafe rating:', error);
         }
-    } catch (error) {
-        console.error('Error updating cafe rating after review deletion:', error);
     }
 });
 

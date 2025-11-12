@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true }); // Merge params from parent router
 const { protect } = require('../middleware/auth');
+const { uploadReviewImages } = require('../config/cloudinary');
 const {
     getReviews,
     getReview,
@@ -57,9 +58,10 @@ router.get('/sentiment', getSentimentStats);
  * @route   POST /api/cafes/:cafeId/reviews
  * @desc    Create new review
  * @access  Private
- * @body    content, rating, detailedRatings?, images?, visitDate?
+ * @body    content, rating, detailedRatings?, visitDate?
+ * @files   images (optional, max 5)
  */
-router.post('/', protect, createReview);
+router.post('/', protect, uploadReviewImages, createReview);
 
 /**
  * @route   GET /api/users/me/reviews
