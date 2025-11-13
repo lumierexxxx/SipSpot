@@ -6,8 +6,8 @@
 const Review = require('../models/review');
 const Cafe = require('../models/cafe');
 const ExpressError = require('../utils/ExpressError.js');
-const { deleteImages } = require('../config/cloudinary');
-const { analyzeReview } = require('../config/aiService');
+const { deleteImages } = require('../services/cloudinary');
+const { analyzeReview } = require('../services/aiService');
 
 /**
  * @desc    Get all reviews for a cafe

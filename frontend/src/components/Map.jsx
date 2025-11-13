@@ -34,9 +34,10 @@ const Map = ({
     useEffect(() => {
         // 检查是否已经加载
         if (window.L) {
-            setIsLoaded(true);
+            Promise.resolve().then(() => setIsLoaded(true));  // ✔
             return;
         }
+
 
         // 加载 Leaflet CSS
         const link = document.createElement('link');
@@ -54,7 +55,7 @@ const Map = ({
         script.async = true;
 
         script.onload = () => {
-            setIsLoaded(true);
+            setTimeout(() => setIsLoaded(true), 0);
         };
 
         script.onerror = () => {
@@ -95,7 +96,7 @@ const Map = ({
             mapInstanceRef.current = map;
         } catch (err) {
             console.error('Map initialization error:', err);
-            setError('地图初始化失败');
+            Promise.resolve().then(() => setError('地图初始化失败'));
         }
     }, [isLoaded, center.lat, center.lng, zoom]);
 
@@ -249,7 +250,7 @@ export const SimpleMap = ({
 
     useEffect(() => {
         if (window.L) {
-            setIsLoaded(true);
+            Promise.resolve().then(() => setIsLoaded(true));
             return;
         }
 
@@ -261,7 +262,9 @@ export const SimpleMap = ({
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         script.async = true;
-        script.onload = () => setIsLoaded(true);
+        script.onload = () => {
+            setTimeout(() => setIsLoaded(true), 0);
+        };
         document.body.appendChild(script);
     }, []);
 

@@ -123,18 +123,24 @@ export const deleteCafe = (cafeId) => {
 
 /**
  * 添加咖啡店到收藏
+ * @deprecated 请使用 usersAPI.addToFavorites
  * @param {string} cafeId - 咖啡店ID
  */
 export const addToFavorites = (cafeId) => {
-    return post(`/cafes/${cafeId}/favorite`);
+    // 迁移提示：此函数已迁移到 usersAPI.js
+    // 新端点：POST /api/users/me/favorites/:cafeId
+    return post(`/users/me/favorites/${cafeId}`);
 };
 
 /**
  * 从收藏中移除咖啡店
+ * @deprecated 请使用 usersAPI.removeFromFavorites
  * @param {string} cafeId - 咖啡店ID
  */
 export const removeFromFavorites = (cafeId) => {
-    return del(`/cafes/${cafeId}/favorite`);
+    // 迁移提示：此函数已迁移到 usersAPI.js
+    // 新端点：DELETE /api/users/me/favorites/:cafeId
+    return del(`/users/me/favorites/${cafeId}`);
 };
 
 // ============================================

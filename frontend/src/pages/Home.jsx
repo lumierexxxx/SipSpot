@@ -3,7 +3,7 @@
 // 首页组件
 // ============================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CafeCard from '@components/CafeCard';
 import { useAPI } from '@hooks/useAPI';
@@ -16,6 +16,7 @@ const Home = () => {
     
     // 获取用户位置
     const { latitude, longitude } = useCurrentPosition();
+    const hasFetchedNearby = useRef(false);
 
     // 获取高评分咖啡店
     const {
@@ -24,22 +25,33 @@ const Home = () => {
         error: topRatedError
     } = useAPI(() => getTopRatedCafes({ limit: 6 }));
 
-    // 获取附近咖啡店
+    // 🔧 修改：保证 API 函数不会每次 render 重建，避免无限循环
+    const stableNearbyAPI = useCallback(() => {
+        if (latitude == null || longitude == null) return null; // 🔧 修改：避免位置为 null 时调用
+        return getNearbyCafes({
+            lng: longitude,
+            lat: latitude,
+            distance: 10000,
+            limit: 6
+        });
+    }, [latitude, longitude]); // 🔧 修改（新增 useCallback）
+
+    // 获取附近咖啡店（改为稳定 API 函数）
     const {
         data: nearbyData,
         loading: nearbyLoading,
         execute: fetchNearby
-    } = useAPI(
-        () => getNearbyCafes({ lng: longitude, lat: latitude, distance: 10000, limit: 6 }),
-        { immediate: false }
-    );
+    } = useAPI(stableNearbyAPI, {
+        immediate: false
+    });
 
     // 当位置获取后，加载附近咖啡店
     useEffect(() => {
-        if (latitude && longitude) {
-            fetchNearby();
+        if (!hasFetchedNearby.current && latitude != null && longitude != null) {
+        hasFetchedNearby.current = true;
+        fetchNearby();
         }
-    }, [latitude, longitude, fetchNearby]);
+    }, [latitude, longitude, fetch]);
 
     // 处理搜索
     const handleSearch = (e) => {
@@ -215,7 +227,7 @@ const Home = () => {
             {/* ============================================ */}
             {/* 附近咖啡店 */}
             {/* ============================================ */}
-            {latitude && longitude && (
+            {latitude != null && longitude != null && (
                 <section className="py-16 bg-white">
                     <div className="container-custom">
                         <div className="flex items-center justify-between mb-8">

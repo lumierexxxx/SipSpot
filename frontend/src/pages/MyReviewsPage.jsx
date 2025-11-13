@@ -3,7 +3,7 @@
 // 我的评论管理页面
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserReviews } from '../services/authAPI';
@@ -12,12 +12,6 @@ import { deleteReview } from '../services/cafesAPI';
 const MyReviewsPage = () => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
-
-    // 如果未登录，重定向到登录页
-    if (!isLoggedIn) {
-        navigate('/login');
-        return null;
-    }
 
     // 数据状态
     const [reviews, setReviews] = useState([]);
@@ -33,13 +27,23 @@ const MyReviewsPage = () => {
     const [sortBy, setSortBy] = useState('-createdAt'); // -createdAt, -rating, rating
 
     // ============================================
+    // 如果未登录，重定向到登录页
+    // ============================================
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate('/login');
+        }
+    }, [isLoggedIn, navigate]);
+
+
+    // ============================================
     // 加载评论列表
     // ============================================
     useEffect(() => {
         loadReviews();
-    }, [currentPage, sortBy]);
+    }, [currentPage, sortBy, loadReviews]);
 
-    const loadReviews = async () => {
+    const loadReviews = useCallback (async () => {
         try {
             setLoading(true);
             setError(null);
@@ -63,7 +67,7 @@ const MyReviewsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    },[]);
 
     // ============================================
     // 处理删除评论

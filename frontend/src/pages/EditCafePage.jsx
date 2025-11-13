@@ -3,7 +3,7 @@
 // 编辑咖啡店页面
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getCafeById, updateCafe } from '../services/cafesAPI';
@@ -12,12 +12,6 @@ const EditCafePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { isLoggedIn, userId, canEdit } = useAuth();
-
-    // 如果未登录，重定向到登录页
-    if (!isLoggedIn) {
-        navigate('/login');
-        return null;
-    }
 
     // 数据加载状态
     const [initialLoading, setInitialLoading] = useState(true);
@@ -61,6 +55,17 @@ const EditCafePage = () => {
         'Specialty Beans', 'Desserts', 'Light Meals'
     ];
 
+
+    // ============================================
+    // 如果未登录，重定向到登录页
+    // ============================================
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate('/login');
+        }
+    }, [isLoggedIn, navigate]);
+
+
     // ============================================
     // 加载咖啡店数据
     // ============================================
@@ -68,7 +73,7 @@ const EditCafePage = () => {
         loadCafeData();
     }, [id]);
 
-    const loadCafeData = async () => {
+    const loadCafeData = useCallback( async () => {
         try {
             setInitialLoading(true);
             const response = await getCafeById(id);
@@ -110,7 +115,7 @@ const EditCafePage = () => {
         } finally {
             setInitialLoading(false);
         }
-    };
+    },[]);
 
     // ============================================
     // 处理表单变化

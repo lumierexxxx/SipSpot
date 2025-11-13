@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true }); // Merge params from parent router
 const { protect } = require('../middleware/auth');
-const { uploadReviewImages } = require('../config/cloudinary');
+const { uploadReviewImages } = require('../services/cloudinary');
 const {
     getReviews,
     getReview,

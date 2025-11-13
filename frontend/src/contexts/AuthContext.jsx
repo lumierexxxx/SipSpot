@@ -3,7 +3,7 @@
 // 全局认证状态管理
 // ============================================
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
     login as loginAPI, 
     register as registerAPI,
@@ -183,9 +183,9 @@ export const AuthProvider = ({ children }) => {
         return user && user.role === role;
     };
 
-    const isAdmin = () => {
+    const isAdmin = useCallback( () => {
         return hasRole('admin');
-    };
+    }, [user]);
 
     // ============================================
     // 检查是否是资源所有者

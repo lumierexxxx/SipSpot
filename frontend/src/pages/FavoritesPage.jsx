@@ -14,11 +14,6 @@ const FavoritesPage = () => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
 
-    // 如果未登录，重定向到登录页
-    if (!isLoggedIn) {
-        navigate('/login');
-        return null;
-    }
 
     // 数据状态
     const [favorites, setFavorites] = useState([]);
@@ -28,6 +23,18 @@ const FavoritesPage = () => {
     // 排序和过滤
     const [sortBy, setSortBy] = useState('recent'); // recent, rating, name
     const [filterCity, setFilterCity] = useState('');
+
+    // ============================================
+    // 如果未登录，重定向到登录页
+    // ============================================
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate('/login');
+        }
+    }, [isLoggedIn, navigate]);
+
+
+
 
     // ============================================
     // 加载收藏列表

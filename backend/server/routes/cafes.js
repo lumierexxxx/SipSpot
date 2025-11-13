@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, optionalAuth } = require('../middleware/auth');
-const { uploadCafeImages } = require('../config/cloudinary');
+const { uploadCafeImages } = require('../services/cloudinary');
 const {
     getCafes,
     getNearby,
@@ -17,8 +17,6 @@ const {
     getTopRated,
     searchCafes,
     getCafesByAmenities,
-    addToFavorites,
-    removeFromFavorites,
     getCafeStats
 } = require('../controllers/cafeController');
 
@@ -116,19 +114,5 @@ router.put('/:id', protect, updateCafe);
  * @access  Private (Owner or Admin)
  */
 router.delete('/:id', protect, deleteCafe);
-
-/**
- * @route   POST /api/cafes/:id/favorite
- * @desc    Add cafe to user's favorites
- * @access  Private
- */
-router.post('/:id/favorite', protect, addToFavorites);
-
-/**
- * @route   DELETE /api/cafes/:id/favorite
- * @desc    Remove cafe from user's favorites
- * @access  Private
- */
-router.delete('/:id/favorite', protect, removeFromFavorites);
 
 module.exports = router;

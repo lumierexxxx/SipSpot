@@ -22,6 +22,7 @@ const cookieParser = require('cookie-parser');
 // ============================================
 const authRoutes = require('./routes/auth');
 const cafeRoutes = require('./routes/cafes');
+const userRoutes = require('./routes/users');
 const standalone = require('./routes/reviewsStandalone'); // Standalone review routes
 // ============================================
 // 数据库连接
@@ -134,6 +135,7 @@ app.get('/api', (req, res) => {
         endpoints: {
             auth: '/api/auth',
             cafes: '/api/cafes',
+            users: '/api/users',
             reviews: '/api/reviews',
             nestedReviews: '/api/cafes/:cafeId/reviews'
         }
@@ -145,6 +147,9 @@ app.use('/api/auth', authLimiter, authRoutes);
 
 // 咖啡店路由
 app.use('/api/cafes', limiter, cafeRoutes);
+
+// 用户路由
+app.use('/api/users', limiter, userRoutes);
 
 // 独立评论路由（用于单个评论的操作：获取、更新、删除、投票等）
 app.use('/api/reviews', limiter, standalone);

@@ -3,7 +3,7 @@
 // 咖啡店详情页面 - 整合所有相关组件
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CafeDetail from '../components/CafeDetail';
@@ -47,7 +47,7 @@ const CafeDetailPage = () => {
     // ============================================
     useEffect(() => {
         loadCafeData();
-    }, [id]);
+    }, [id, loadCafeData]);
 
     // ============================================
     // 加载评论数据
@@ -56,9 +56,9 @@ const CafeDetailPage = () => {
         if (cafe) {
             loadReviews();
         }
-    }, [cafe, currentPage, sortBy]);
+    }, [cafe, currentPage, sortBy, loadReviews]);
 
-    const loadCafeData = async () => {
+    const loadCafeData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -80,9 +80,9 @@ const CafeDetailPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    },[]);
 
-    const loadReviews = async () => {
+    const loadReviews = useCallback( async () => {
         try {
             setReviewsLoading(true);
             const response = await getReviews(id, {
@@ -101,7 +101,7 @@ const CafeDetailPage = () => {
         } finally {
             setReviewsLoading(false);
         }
-    };
+    },[]);
 
     // ============================================
     // 处理收藏

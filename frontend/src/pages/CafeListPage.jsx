@@ -3,7 +3,7 @@
 // 咖啡店列表页面 - 带过滤、搜索和分页
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CafeCard from '../components/CafeCard';
@@ -71,7 +71,7 @@ const CafeListPage = ({ myOnly = false }) => {
     // ============================================
     useEffect(() => {
         loadCafes();
-    }, [currentPage, filters, myOnly]);
+    }, [currentPage, filters, myOnly, loadCafes]);
 
     // 更新URL参数
     useEffect(() => {
@@ -85,9 +85,9 @@ const CafeListPage = ({ myOnly = false }) => {
         filters.amenities.forEach(a => params.append('amenities', a));
         
         setSearchParams(params);
-    }, [filters]);
+    }, [filters, setSearchParams]);
 
-    const loadCafes = async () => {
+    const loadCafes = useCallback (async () => {
         try {
             setLoading(true);
             setError(null);
@@ -119,7 +119,7 @@ const CafeListPage = ({ myOnly = false }) => {
         } finally {
             setLoading(false);
         }
-    };
+    },[]);
 
     // ============================================
     // 处理过滤器变化

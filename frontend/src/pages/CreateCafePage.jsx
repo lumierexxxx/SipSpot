@@ -12,11 +12,6 @@ const CreateCafePage = () => {
     const navigate = useNavigate();
     const { isLoggedIn } = useAuth();
 
-    // 如果未登录，重定向到登录页
-    if (!isLoggedIn) {
-        navigate('/login');
-        return null;
-    }
 
     // 表单数据
     const [formData, setFormData] = useState({
@@ -68,6 +63,15 @@ const CreateCafePage = () => {
         'Espresso', 'Pour Over', 'Cold Brew', 'Latte Art',
         'Specialty Beans', 'Desserts', 'Light Meals'
     ];
+
+    // ============================================
+    // 如果未登录，重定向到登录页
+    // ============================================
+    useEffect(() => {
+        if (!isLoggedIn) {
+            navigate('/login');
+        }
+    }, [isLoggedIn, navigate]);
 
     // ============================================
     // 处理表单变化

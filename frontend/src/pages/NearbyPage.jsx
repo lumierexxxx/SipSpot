@@ -3,7 +3,7 @@
 // 附近咖啡店页面 - 基于地理位置
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CafeCard from '../components/CafeCard';
 import Map from '../components/Map';
@@ -33,9 +33,9 @@ const NearbyPage = () => {
         if (location && location.lat && location.lng) {
             loadNearbyCafes();
         }
-    }, [location, distance, limit]);
+    }, [location, distance, limit, loadNearbyCafes]);
 
-    const loadNearbyCafes = async () => {
+    const loadNearbyCafes =useCallback (async () => {
         if (!location || !location.lat || !location.lng) return;
 
         try {
@@ -57,7 +57,7 @@ const NearbyPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    },[]);
 
     // ============================================
     // 处理距离变化

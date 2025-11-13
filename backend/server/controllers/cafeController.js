@@ -268,10 +268,10 @@ exports.deleteCafe = async (req, res, next) => {
         // Delete images from cloudinary (if using cloudinary)
         if (cafe.images && cafe.images.length > 0) {
             // TODO: Implement cloudinary deletion
-            // const cloudinary = require('../config/cloudinary');
-            // for (const image of cafe.images) {
-            //     await cloudinary.uploader.destroy(image.publicId);
-            // }
+            const cloudinary = require('../config/cloudinary');
+            for (const image of cafe.images) {
+                await cloudinary.uploader.destroy(image.publicId);
+            }
         }
         
         // Delete cafe (will trigger cascade delete of reviews via middleware)
@@ -363,68 +363,6 @@ exports.getCafesByAmenities = async (req, res, next) => {
             count: cafes.length,
             amenities,
             data: cafes
-        });
-        
-    } catch (error) {
-        next(error);
-    }
-};
-
-/**
- * @desc    Add cafe to favorites
- * @route   POST /api/cafes/:id/favorite
- * @access  Private
- */
-exports.addToFavorites = async (req, res, next) => {
-    try {
-        const cafe = await Cafe.findById(req.params.id);
-        
-        if (!cafe) {
-            return next(new ExpressError('Cafe not found', 404));
-        }
-        
-        // Add to user's favorites
-        await req.user.addFavorite(cafe._id);
-        
-        // Increment cafe's favorite count
-        cafe.favoriteCount += 1;
-        await cafe.save({ validateBeforeSave: false });
-        
-        res.status(200).json({
-            success: true,
-            message: 'Added to favorites',
-            data: { favoriteCount: cafe.favoriteCount }
-        });
-        
-    } catch (error) {
-        next(error);
-    }
-};
-
-/**
- * @desc    Remove cafe from favorites
- * @route   DELETE /api/cafes/:id/favorite
- * @access  Private
- */
-exports.removeFromFavorites = async (req, res, next) => {
-    try {
-        const cafe = await Cafe.findById(req.params.id);
-        
-        if (!cafe) {
-            return next(new ExpressError('Cafe not found', 404));
-        }
-        
-        // Remove from user's favorites
-        await req.user.removeFavorite(cafe._id);
-        
-        // Decrement cafe's favorite count
-        cafe.favoriteCount = Math.max(0, cafe.favoriteCount - 1);
-        await cafe.save({ validateBeforeSave: false });
-        
-        res.status(200).json({
-            success: true,
-            message: 'Removed from favorites',
-            data: { favoriteCount: cafe.favoriteCount }
         });
         
     } catch (error) {

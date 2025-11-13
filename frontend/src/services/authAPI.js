@@ -222,28 +222,24 @@ export const uploadAvatar = async (avatarFile) => {
 };
 
 // ============================================
-// 用户相关 API（扩展功能）
+// 用户扩展功能（已迁移到 usersAPI.js）
+// 以下函数保留以保持向后兼容，但已标记为废弃
+// 建议使用新的 usersAPI.js 中的对应函数
 // ============================================
 
 /**
  * 获取用户的收藏列表
+ * @deprecated 此函数已迁移到 usersAPI.js
+ * 请使用：import { getFavorites } from './usersAPI';
  * @param {Object} params
  * @param {number} params.page - 页码
  * @param {number} params.limit - 每页数量
  */
 export const getUserFavorites = async (params = {}) => {
     try {
-        const response = await getCurrentUser();
-        
-        if (response.success && response.data) {
-            // 后端的用户模型中包含了 favorites 字段（已populate）
-            return {
-                success: true,
-                data: response.data.favorites || []
-            };
-        }
-        
-        return { success: false, data: [] };
+        // 调用新端点以保持向后兼容
+        const response = await get('/users/me/favorites', { params });
+        return response;
     } catch (error) {
         throw error;
     }
@@ -251,20 +247,14 @@ export const getUserFavorites = async (params = {}) => {
 
 /**
  * 获取用户访问过的咖啡店
+ * @deprecated 此函数已迁移到 usersAPI.js
+ * 请使用：import { getVisitedCafes } from './usersAPI';
  */
-export const getUserVisitedCafes = async () => {
+export const getUserVisitedCafes = async (params = {}) => {
     try {
-        const response = await getCurrentUser();
-        
-        if (response.success && response.data) {
-            // 后端的用户模型中包含了 visited 字段（已populate）
-            return {
-                success: true,
-                data: response.data.visited || []
-            };
-        }
-        
-        return { success: false, data: [] };
+        // 调用新端点以保持向后兼容
+        const response = await get('/users/me/visited', { params });
+        return response;
     } catch (error) {
         throw error;
     }
@@ -272,31 +262,17 @@ export const getUserVisitedCafes = async () => {
 
 /**
  * 获取用户创建的咖啡店
+ * @deprecated 此函数已迁移到 usersAPI.js
+ * 请使用：import { getMyCafes } from './usersAPI';
  * @param {Object} params
  * @param {number} params.page - 页码
  * @param {number} params.limit - 每页数量
  */
 export const getUserCafes = async (params = {}) => {
     try {
-        // 通过cafes API获取当前用户创建的咖啡店
-        const { getCafes } = await import('./cafesAPI');
-        
-        // 需要后端支持 author=me 这样的查询，或者在前端过滤
-        // 这里假设后端支持，如果不支持可以在获取用户信息后过滤
-        const response = await getCurrentUser();
-        
-        if (response.success && response.data) {
-            const userId = response.data.id || response.data._id;
-            
-            // 获取该用户创建的咖啡店
-            // 注意：这需要后端支持按作者过滤，如果没有，需要调整
-            return await getCafes({ 
-                ...params,
-                author: userId 
-            });
-        }
-        
-        return { success: false, data: [] };
+        // 调用新端点以保持向后兼容
+        const response = await get('/users/me/cafes', { params });
+        return response;
     } catch (error) {
         throw error;
     }
@@ -304,14 +280,15 @@ export const getUserCafes = async (params = {}) => {
 
 /**
  * 获取用户的评论
+ * @deprecated 此函数已迁移到 usersAPI.js
+ * 请使用：import { getMyReviews } from './usersAPI';
  * @param {Object} params
  * @param {number} params.page - 页码
  * @param {number} params.limit - 每页数量
  */
 export const getUserReviews = async (params = {}) => {
     try {
-        // 注意：这个API路由在后端的 reviewController 中定义但没有挂载
-        // 如果后端没有这个路由，需要先添加
+        // 调用新端点以保持向后兼容
         const response = await get('/users/me/reviews', { params });
         return response;
     } catch (error) {
@@ -351,8 +328,12 @@ export const checkAuthStatus = async () => {
     }
 };
 
+// ============================================
+// 表单验证辅助函数
+// ============================================
+
 /**
- * 验证表单数据
+ * 验证注册表单数据
  */
 export const validateRegistrationData = (data) => {
     const errors = {};
@@ -482,11 +463,11 @@ export default {
     refreshToken,
     uploadAvatar,
     
-    // 用户数据
-    getUserFavorites,
-    getUserVisitedCafes,
-    getUserCafes,
-    getUserReviews,
+    // 用户数据（已废弃，建议使用 usersAPI.js）
+    getUserFavorites,      // @deprecated
+    getUserVisitedCafes,   // @deprecated
+    getUserCafes,          // @deprecated
+    getUserReviews,        // @deprecated
     
     // 辅助功能
     checkAuthStatus,

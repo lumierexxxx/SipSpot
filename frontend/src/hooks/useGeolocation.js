@@ -3,7 +3,7 @@
 // 获取和追踪用户地理位置
 // ============================================
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /**
  * 默认配置选项
@@ -40,7 +40,11 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     const isMountedRef = useRef(true);
 
     // 合并选项
-    const geoOptions = { ...DEFAULT_OPTIONS, ...options };
+    const geoOptions = useMemo(() => ({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    }), []);
 
     // ============================================
     // 检查地理位置API是否可用
@@ -169,7 +173,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
             handleError,
             geoOptions
         );
-    }, [isGeolocationAvailable, handleSuccess, handleError, geoOptions, tryLoadLastKnownLocation]);
+    }, [isGeolocationAvailable, handleSuccess, handleError, geoOptions]);
 
     // ============================================
     // 开始追踪位置

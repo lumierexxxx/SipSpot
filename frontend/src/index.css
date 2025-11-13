@@ -41,7 +41,6 @@
 /* ============================================
    基础样式重置和增强
    ============================================ */
-@layer base {
   * {
     @apply border-gray-200;
   }
@@ -99,38 +98,34 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400;
   }
-}
 
 /* ============================================
    自定义组件样式
    ============================================ */
-@layer components {
-  /* 按钮样式 */
+  /* ============================================
+   BUTTONS (Tailwind v4)
+   ============================================ */
+
   .btn {
-    @apply px-4 py-2 font-medium rounded-lg transition-all duration-200;
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-4 py-2 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
-  
+
   .btn-primary {
-    @apply bg-amber-600 text-white hover:bg-amber-700;
-    @apply focus:ring-amber-500;
+    @apply bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500;
   }
-  
+
   .btn-secondary {
-    @apply bg-gray-600 text-white hover:bg-gray-700;
-    @apply focus:ring-gray-500;
+    @apply bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500;
   }
-  
+
   .btn-outline {
-    @apply border-2 border-amber-600 text-amber-600 hover:bg-amber-50;
-    @apply focus:ring-amber-500;
+    @apply border-2 border-amber-600 text-amber-600 hover:bg-amber-50 focus:ring-amber-500;
   }
-  
+
   .btn-ghost {
-    @apply text-gray-700 hover:bg-gray-100;
-    @apply focus:ring-gray-300;
+    @apply text-gray-700 hover:bg-gray-100 focus:ring-gray-300;
   }
-  
+
   /* 输入框样式 */
   .input {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg;
@@ -142,92 +137,109 @@
     @apply border-red-500 focus:ring-red-500;
   }
   
-  /* 卡片样式 */
+  /* ============================================
+   CARD (Tailwind v4)
+   ============================================ */
+
   .card {
-    @apply bg-white rounded-xl shadow-md overflow-hidden;
-    @apply transition-shadow duration-300;
+    @apply bg-white rounded-xl shadow-md overflow-hidden transition-shadow duration-300;
   }
-  
+
   .card-hover {
     @apply hover:shadow-xl;
   }
-  
-  /* 徽章样式 */
+
+  /* ============================================
+   BADGES (Tailwind v4)
+   ============================================ */
+
   .badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
   }
-  
+
   .badge-primary {
     @apply bg-amber-100 text-amber-800;
   }
-  
+
   .badge-success {
     @apply bg-green-100 text-green-800;
   }
-  
+
   .badge-warning {
     @apply bg-yellow-100 text-yellow-800;
   }
-  
+
   .badge-error {
     @apply bg-red-100 text-red-800;
   }
-  
-  /* 加载动画 */
+/* ============================================
+   SPINNER (Tailwind v4)
+   ============================================ */
+
   .spinner {
-    @apply animate-spin rounded-full border-2 border-gray-300;
-    @apply border-t-amber-600;
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-amber-600;
   }
+
   
-  /* 容器 */
+/* ============================================
+   CUSTOM CONTAINER (Tailwind v4)
+   ============================================ */
+
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
-  
-  /* 文本截断 */
+
+  /* ============================================
+   LINE CLAMP (Tailwind v4)
+   ============================================ */
+
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  
+
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-}
+
 
 /* ============================================
    自定义工具类
    ============================================ */
-@layer utilities {
+
   /* 渐变背景 */
   .gradient-primary {
     background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
   }
-  
+
   .gradient-coffee {
     background: linear-gradient(135deg, #8b6f47 0%, #6f4e37 100%);
   }
-  
-  /* 毛玻璃效果 */
+
+  /* ============================================
+   GLASS (Tailwind v4)
+   ============================================ */
+
   .glass {
     @apply bg-white/80 backdrop-blur-md;
   }
-  
+
   .glass-dark {
     @apply bg-gray-900/80 backdrop-blur-md;
   }
+
   
   /* 动画延迟 */
   .animation-delay-100 {
@@ -256,49 +268,29 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-}
+
 
 /* ============================================
    自定义动画
    ============================================ */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes bounce-slow {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* 动画类 */
