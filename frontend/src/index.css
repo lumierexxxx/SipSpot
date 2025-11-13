@@ -1,130 +1,270 @@
+/* ============================================
+   SipSpot Frontend - Global Styles
+   Tailwind CSS v4 配置和自定义样式
+   ============================================ */
+
+/* Tailwind v4 导入 - 新语法！ */
 @import "tailwindcss";
 
-/* ========================================
-   全局样式
-======================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-
-* {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* ============================================
+   自定义主题配置（Tailwind v4 方式）
+   ============================================ */
+@theme {
+  /* 品牌颜色 */
+  --color-primary: #d97706; /* amber-600 */
+  --color-primary-light: #fbbf24; /* amber-400 */
+  --color-primary-dark: #b45309; /* amber-700 */
+  
+  /* 扩展颜色 */
+  --color-coffee: #6f4e37;
+  --color-coffee-light: #8b6f47;
+  --color-coffee-dark: #3e2723;
+  
+  /* 字体 */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', sans-serif;
+  
+  /* 阴影 */
+  --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  --shadow-medium: 0 4px 20px -2px rgba(0, 0, 0, 0.1), 0 12px 28px -4px rgba(0, 0, 0, 0.08);
+  
+  /* 动画时长 */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  
+  /* 边框圆角 */
+  --radius-card: 0.75rem;
+  --radius-button: 0.5rem;
 }
 
-body {
-  background: linear-gradient(135deg, #FEF3C7 0%, #FED7AA 50%, #FEF08A 100%);
-  min-height: 100vh;
-}
-
-/* ========================================
-   毛玻璃卡片效果
-======================================== */
-.card-glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.card-glass:hover {
-  background: rgba(255, 255, 255, 0.85);
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* ========================================
-   Hero 区域渐变
-======================================== */
-.hero-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-gradient::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  animation: pulse 4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.5;
+/* ============================================
+   基础样式重置和增强
+   ============================================ */
+@layer base {
+  * {
+    @apply border-gray-200;
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
+  
+  html {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
-
-/* ========================================
-   按钮样式
-======================================== */
-.btn-gradient {
-  background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-}
-
-.btn-gradient:hover {
-  background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
-}
-
-.btn-glass {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.3s ease;
-}
-
-.btn-glass:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-}
-
-/* ========================================
-   图标动画
-======================================== */
-.feature-icon {
-  transition: all 0.3s ease;
-}
-
-.feature-icon:hover {
-  transform: rotate(10deg) scale(1.1);
-}
-
-/* ========================================
-   浮动动画
-======================================== */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-family: var(--font-sans);
   }
-  50% {
-    transform: translateY(-10px);
+  
+  /* 标题字体 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold;
+  }
+  
+  /* 链接样式 */
+  a {
+    @apply transition-colors duration-200;
+  }
+  
+  /* 按钮默认样式 */
+  button {
+    @apply transition-all duration-200;
+  }
+  
+  /* 输入框默认样式 */
+  input, textarea, select {
+    @apply transition-colors duration-200;
+  }
+  
+  /* 图片优化 */
+  img {
+    @apply max-w-full h-auto;
+  }
+  
+  /* 滚动条样式（Webkit浏览器） */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
   }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* ============================================
+   自定义组件样式
+   ============================================ */
+@layer components {
+  /* 按钮样式 */
+  .btn {
+    @apply px-4 py-2 font-medium rounded-lg transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-amber-600 text-white hover:bg-amber-700;
+    @apply focus:ring-amber-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-600 text-white hover:bg-gray-700;
+    @apply focus:ring-gray-500;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-amber-600 text-amber-600 hover:bg-amber-50;
+    @apply focus:ring-amber-500;
+  }
+  
+  .btn-ghost {
+    @apply text-gray-700 hover:bg-gray-100;
+    @apply focus:ring-gray-300;
+  }
+  
+  /* 输入框样式 */
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg;
+    @apply focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+  
+  .input-error {
+    @apply border-red-500 focus:ring-red-500;
+  }
+  
+  /* 卡片样式 */
+  .card {
+    @apply bg-white rounded-xl shadow-md overflow-hidden;
+    @apply transition-shadow duration-300;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-xl;
+  }
+  
+  /* 徽章样式 */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-amber-100 text-amber-800;
+  }
+  
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  /* 加载动画 */
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-300;
+    @apply border-t-amber-600;
+  }
+  
+  /* 容器 */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* 文本截断 */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
-/* ========================================
-   淡入动画
-======================================== */
-@keyframes fadeInUp {
+/* ============================================
+   自定义工具类
+   ============================================ */
+@layer utilities {
+  /* 渐变背景 */
+  .gradient-primary {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  }
+  
+  .gradient-coffee {
+    background: linear-gradient(135deg, #8b6f47 0%, #6f4e37 100%);
+  }
+  
+  /* 毛玻璃效果 */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+  
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-md;
+  }
+  
+  /* 动画延迟 */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  /* 文本渐变 */
+  .text-gradient {
+    @apply bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent;
+  }
+  
+  /* 隐藏滚动条但保持可滚动 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================
+   自定义动画
+   ============================================ */
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -132,26 +272,93 @@ body {
   }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* ========================================
-   文字渐变
-======================================== */
-.text-gradient {
-  background: linear-gradient(135deg, #F59E0B 0%, #F97316 50%, #EC4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
-/* ========================================
-   导航栏毛玻璃
-======================================== */
-nav {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 动画类 */
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s infinite;
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    @apply bg-white;
+  }
+  
+  .card {
+    @apply shadow-none border border-gray-200;
+  }
+}
+
+/* ============================================
+   无障碍优化
+   ============================================ */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-amber-500 ring-offset-2;
+}
+
+/* 减少动画（用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 暗色模式支持（预留） */
+@media (prefers-color-scheme: dark) {
+  /* 暗色模式样式可以在这里添加 */
+  /* 例如：
+  :root {
+    --color-primary: #fbbf24;
+  }
+  */
 }

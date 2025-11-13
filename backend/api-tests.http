@@ -193,7 +193,7 @@ GET {{baseUrl}}/cafes/{{cafeId}}/reviews/sentiment
 
 ### 2️⃣5️⃣ 获取单个评论详情
 # 功能：查看某条评论的完整内容
-@reviewId = 6914789f9e60901157505655
+@reviewId = 6914797307aae027d4598f21
 GET {{baseUrl}}/reviews/{{reviewId}}
 
 ### 2️⃣6️⃣ 创建评论（需要登录）
