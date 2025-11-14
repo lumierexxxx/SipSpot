@@ -42,21 +42,6 @@ const CafeDetailPage = () => {
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [showAIAnalysis, setShowAIAnalysis] = useState(false);
 
-    // ============================================
-    // 加载咖啡店数据
-    // ============================================
-    useEffect(() => {
-        loadCafeData();
-    }, [id, loadCafeData]);
-
-    // ============================================
-    // 加载评论数据
-    // ============================================
-    useEffect(() => {
-        if (cafe) {
-            loadReviews();
-        }
-    }, [cafe, currentPage, sortBy, loadReviews]);
 
     const loadCafeData = useCallback(async () => {
         try {
@@ -102,6 +87,25 @@ const CafeDetailPage = () => {
             setReviewsLoading(false);
         }
     },[]);
+
+
+
+
+    // ============================================
+    // 加载咖啡店数据
+    // ============================================
+    useEffect(() => {
+        loadCafeData();
+    }, [id, loadCafeData]);
+
+    // ============================================
+    // 加载评论数据
+    // ============================================
+    useEffect(() => {
+        if (cafe) {
+            loadReviews();
+        }
+    }, [cafe, currentPage, sortBy, loadReviews]);
 
     // ============================================
     // 处理收藏

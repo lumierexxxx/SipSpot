@@ -7,8 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CafeCard from '../components/CafeCard';
-import { getUserFavorites } from '../services/authAPI';
-import { toggleFavorite } from '../services/cafesAPI';
+import { getUserFavorites } from '../services/usersAPI';
+import { toggleFavorite } from '../services/usersAPI';
 
 const FavoritesPage = () => {
     const navigate = useNavigate();
@@ -68,7 +68,7 @@ const FavoritesPage = () => {
         }
 
         try {
-            await toggleFavorite(cafeId, true); // true表示当前已收藏，要取消
+            await removeFromFavorites(cafeId); // true表示当前已收藏，要取消
             
             // 从列表中移除
             setFavorites(prev => prev.filter(cafe => 

@@ -66,13 +66,7 @@ const CafeListPage = ({ myOnly = false }) => {
         'Austin'
     ];
 
-    // ============================================
-    // 加载咖啡店数据
-    // ============================================
-    useEffect(() => {
-        loadCafes();
-    }, [currentPage, filters, myOnly, loadCafes]);
-
+    
     // 更新URL参数
     useEffect(() => {
         const params = new URLSearchParams();
@@ -119,7 +113,16 @@ const CafeListPage = ({ myOnly = false }) => {
         } finally {
             setLoading(false);
         }
-    },[]);
+    },[currentPage, filters, myOnly, userId]);
+
+
+    // ============================================
+    // 加载咖啡店数据
+    // ============================================
+    useEffect(() => {
+        loadCafes();
+    }, [loadCafes]);
+
 
     // ============================================
     // 处理过滤器变化
