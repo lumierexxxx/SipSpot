@@ -22,7 +22,7 @@ exports.userRegisterSchema = Joi.object({
             'string.max': '用户名最多30个字符',
             'any.required': '请提供用户名'
         }),
-    
+
     email: Joi.string()
         .email()
         .required()
@@ -30,7 +30,7 @@ exports.userRegisterSchema = Joi.object({
             'string.email': '请提供有效的邮箱地址',
             'any.required': '请提供邮箱'
         }),
-    
+
     password: Joi.string()
         .min(6)
         .required()
@@ -46,7 +46,7 @@ exports.userLoginSchema = Joi.object({
         .messages({
             'any.required': '请提供邮箱或用户名'
         }),
-    
+
     password: Joi.string()
         .required()
         .messages({
@@ -60,15 +60,15 @@ exports.userUpdateSchema = Joi.object({
         .min(3)
         .max(30)
         .optional(),
-    
+
     email: Joi.string()
         .email()
         .optional(),
-    
+
     avatar: Joi.string()
         .uri()
         .optional(),
-    
+
     bio: Joi.string()
         .max(500)
         .optional()
@@ -81,7 +81,7 @@ exports.passwordUpdateSchema = Joi.object({
         .messages({
             'any.required': '请提供当前密码'
         }),
-    
+
     newPassword: Joi.string()
         .min(6)
         .required()
@@ -105,7 +105,7 @@ exports.cafeSchema = Joi.object({
             'string.max': '咖啡店名称最多100个字符',
             'any.required': '请提供咖啡店名称'
         }),
-    
+
     description: Joi.string()
         .min(10)
         .max(2000)
@@ -115,23 +115,17 @@ exports.cafeSchema = Joi.object({
             'string.max': '描述最多2000个字符',
             'any.required': '请提供描述'
         }),
-    
+
     address: Joi.string()
         .required()
-        .messages({
-            'any.required': '请提供地址'
-        }),
-    
+        .messages({ 'any.required': '请提供地址' }),
+
     city: Joi.string()
         .required()
-        .messages({
-            'any.required': '请提供城市'
-        }),
-    
+        .messages({ 'any.required': '请提供城市' }),
+
     geometry: Joi.object({
-        type: Joi.string()
-            .valid('Point')
-            .default('Point'),
+        type: Joi.string().valid('Point').default('Point'),
         coordinates: Joi.array()
             .items(Joi.number())
             .length(2)
@@ -141,120 +135,73 @@ exports.cafeSchema = Joi.object({
                 'any.required': '请提供坐标'
             })
     }).required(),
-    
+
     price: Joi.number()
         .integer()
         .min(1)
         .max(4)
-        .default(2)
-        .messages({
-            'number.min': '价格等级必须在1-4之间',
-            'number.max': '价格等级必须在1-4之间'
-        }),
-    
+        .default(2),
+
     amenities: Joi.array()
         .items(Joi.string().valid(
-            'WiFi',
-            'Power Outlets',
-            'Quiet',
-            'Outdoor Seating',
-            'Pet Friendly',
-            'Non-Smoking',
-            'Air Conditioning',
-            'Parking Available',
-            'Wheelchair Accessible',
-            'Laptop Friendly',
-            'Good for Groups',
-            'Good for Work'
+            'WiFi', '电源插座', '安静环境', '户外座位',
+            '宠物友好', '禁烟', '空调',
+            '提供停车位', '无障碍通行（轮椅可进入）',
+            '适合使用笔记本电脑', '适合团体聚会', '适合工作 / 办公'
         ))
         .optional(),
-    
+
     specialty: Joi.string()
-        .valid('Espresso', 'Pour Over', 'Cold Brew', 'Latte Art', 'Specialty Beans', 'Desserts', 'Light Meals')
+        .valid('意式浓缩 Espresso', '手冲咖啡 Pour Over', '冷萃咖啡 Cold Brew', '拉花咖啡 Latte Art',
+               '精品咖啡豆 Specialty Beans', '甜点 Desserts', '轻食 Light Meals')
         .optional(),
-    
+
+    vibe: Joi.string()
+        .valid('Specialty', 'Cozy Vibes', 'Work-Friendly', 'Outdoor', 'Hidden Gems', 'New Openings')
+        .optional()
+        .allow('', null),
+
     phoneNumber: Joi.string()
         .pattern(/^[\d\s\-\+\(\)]+$/)
         .optional()
-        .allow('', null)
-        .messages({
-            'string.pattern.base': '请提供有效的电话号码'
-        }),
-    
+        .allow('', null),
+
     website: Joi.string()
         .uri()
         .optional()
-        .allow('', null)
-        .messages({
-            'string.uri': '请提供有效的网址'
-        }),
-    
+        .allow('', null),
+
     openingHours: Joi.array()
         .items(Joi.object({
             day: Joi.string()
-                .valid('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+                .valid('周一', '周二', '周三', '周四', '周五', '周六', '周日')
                 .required(),
-            open: Joi.string()
-                .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
-                .optional(),
-            close: Joi.string()
-                .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
-                .optional(),
-            closed: Joi.boolean()
-                .default(false)
+            open: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+            close: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+            closed: Joi.boolean().default(false)
         }))
         .optional()
 });
 
 exports.cafeUpdateSchema = Joi.object({
-    name: Joi.string()
-        .min(2)
-        .max(100)
-        .optional(),
-    
-    description: Joi.string()
-        .min(10)
-        .max(2000)
-        .optional(),
-    
-    address: Joi.string()
-        .optional(),
-    
-    city: Joi.string()
-        .optional(),
-    
-    price: Joi.number()
-        .integer()
-        .min(1)
-        .max(4)
-        .optional(),
-    
-    amenities: Joi.array()
-        .items(Joi.string())
-        .optional(),
-    
-    specialty: Joi.string()
-        .optional(),
-    
-    phoneNumber: Joi.string()
-        .pattern(/^[\d\s\-\+\(\)]+$/)
-        .optional()
-        .allow('', null),
-    
-    website: Joi.string()
-        .uri()
-        .optional()
-        .allow('', null),
-    
-    openingHours: Joi.array()
-        .optional(),
-    
-    isActive: Joi.boolean()
-        .optional()
+    name: Joi.string().min(2).max(100).optional(),
+    description: Joi.string().min(10).max(2000).optional(),
+    address: Joi.string().optional(),
+    city: Joi.string().optional(),
+    price: Joi.number().integer().min(1).max(4).optional(),
+    amenities: Joi.array().items(Joi.string()).optional(),
+    specialty: Joi.string().optional(),
+    vibe: Joi.string().valid('Specialty', 'Cozy Vibes', 'Work-Friendly', 'Outdoor', 'Hidden Gems', 'New Openings').optional().allow('', null),
+    phoneNumber: Joi.string().pattern(/^[\d\s\-\+\(\)]+$/).optional().allow('', null),
+    website: Joi.string().uri().optional().allow('', null),
+    openingHours: Joi.array().optional(),
+    isActive: Joi.boolean().optional()
 });
 
 // ============================================
 // 评论验证模式
+// 多维度评分：taste(口味), price(价格), environment(环境),
+//             service(服务), workspace(办公适宜度)
 // ============================================
 
 exports.reviewSchema = Joi.object({
@@ -267,13 +214,12 @@ exports.reviewSchema = Joi.object({
             'string.max': '评论内容最多2000个字符',
             'any.required': '请提供评论内容'
         }),
-    
+
     rating: Joi.number()
         .min(1)
         .max(5)
         .required()
         .custom((value, helpers) => {
-            // 确保是0.5的倍数
             if (value % 0.5 !== 0) {
                 return helpers.error('number.multiple', { multiple: 0.5 });
             }
@@ -285,44 +231,45 @@ exports.reviewSchema = Joi.object({
             'number.multiple': '评分必须是0.5的倍数',
             'any.required': '请提供评分'
         }),
-    
-    detailedRatings: Joi.object({
-        coffee: Joi.number().min(1).max(5).optional(),
-        ambience: Joi.number().min(1).max(5).optional(),
-        service: Joi.number().min(1).max(5).optional(),
-        value: Joi.number().min(1).max(5).optional()
-    }).optional(),
-    
+
+    // 多维度评分（与 Review model 一致）
+    ratings: Joi.object({
+        taste: Joi.number().min(1).max(5).required()
+            .messages({ 'any.required': '请提供口味评分' }),
+        price: Joi.number().min(1).max(5).required()
+            .messages({ 'any.required': '请提供价格评分' }),
+        environment: Joi.number().min(1).max(5).required()
+            .messages({ 'any.required': '请提供环境评分' }),
+        service: Joi.number().min(1).max(5).required()
+            .messages({ 'any.required': '请提供服务评分' }),
+        workspace: Joi.number().min(1).max(5).required()
+            .messages({ 'any.required': '请提供办公适宜度评分' })
+    }).required()
+        .messages({ 'any.required': '请提供多维度评分' }),
+
     visitDate: Joi.date()
         .max('now')
         .optional()
-        .messages({
-            'date.max': '访问日期不能是未来'
-        })
+        .messages({ 'date.max': '访问日期不能是未来' })
 });
 
 exports.reviewUpdateSchema = Joi.object({
-    content: Joi.string()
-        .min(10)
-        .max(2000)
-        .optional(),
-    
-    rating: Joi.number()
-        .min(1)
-        .max(5)
-        .optional()
+    content: Joi.string().min(10).max(2000).optional(),
+
+    rating: Joi.number().min(1).max(5).optional()
         .custom((value, helpers) => {
             if (value % 0.5 !== 0) {
                 return helpers.error('number.multiple', { multiple: 0.5 });
             }
             return value;
         }),
-    
-    detailedRatings: Joi.object({
-        coffee: Joi.number().min(1).max(5).optional(),
-        ambience: Joi.number().min(1).max(5).optional(),
+
+    ratings: Joi.object({
+        taste: Joi.number().min(1).max(5).optional(),
+        price: Joi.number().min(1).max(5).optional(),
+        environment: Joi.number().min(1).max(5).optional(),
         service: Joi.number().min(1).max(5).optional(),
-        value: Joi.number().min(1).max(5).optional()
+        workspace: Joi.number().min(1).max(5).optional()
     }).optional()
 });
 
@@ -330,24 +277,18 @@ exports.reviewUpdateSchema = Joi.object({
 // 验证中间件工厂函数
 // ============================================
 
-/**
- * 创建验证中间件
- * @param {Joi.Schema} schema - Joi验证模式
- * @param {string} property - 要验证的属性（body, query, params）
- */
 exports.validate = (schema, property = 'body') => {
     return (req, res, next) => {
         const { error, value } = schema.validate(req[property], {
-            abortEarly: false, // 返回所有错误，而不是第一个
-            stripUnknown: true // 移除未定义的字段
+            abortEarly: false,
+            stripUnknown: true
         });
-        
+
         if (error) {
             const errorMessages = error.details.map(detail => detail.message);
             return next(new ExpressError(errorMessages.join(', '), 400));
         }
-        
-        // 用验证后的值替换原始值（已清理和转换）
+
         req[property] = value;
         next();
     };
@@ -358,87 +299,43 @@ exports.validate = (schema, property = 'body') => {
 // ============================================
 
 exports.paginationSchema = Joi.object({
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
-    
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20),
-    
-    sort: Joi.string()
-        .optional()
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sort: Joi.string().optional()
 });
 
 exports.searchQuerySchema = Joi.object({
-    q: Joi.string()
-        .min(1)
-        .required()
-        .messages({
-            'any.required': '请提供搜索关键词'
-        }),
-    
-    city: Joi.string()
-        .optional(),
-    
-    minRating: Joi.number()
-        .min(0)
-        .max(5)
-        .optional(),
-    
-    maxPrice: Joi.number()
-        .integer()
-        .min(1)
-        .max(4)
-        .optional(),
-    
-    amenities: Joi.alternatives()
-        .try(
-            Joi.string(),
-            Joi.array().items(Joi.string())
-        )
-        .optional(),
-    
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20)
+    q: Joi.string().min(1).required().messages({ 'any.required': '请提供搜索关键词' }),
+    city: Joi.string().optional(),
+    minRating: Joi.number().min(0).max(5).optional(),
+    maxPrice: Joi.number().integer().min(1).max(4).optional(),
+    amenities: Joi.alternatives().try(Joi.string(), Joi.array().items(Joi.string())).optional(),
+    limit: Joi.number().integer().min(1).max(100).default(20)
 });
 
 exports.coordinatesSchema = Joi.object({
-    lng: Joi.number()
-        .min(-180)
-        .max(180)
+    lng: Joi.number().min(-180).max(180).required(),
+    lat: Joi.number().min(-90).max(90).required(),
+    distance: Joi.number().integer().min(100).max(50000).default(5000),
+    limit: Joi.number().integer().min(1).max(100).default(20)
+});
+
+// ============================================
+// AI 搜索解释验证
+// ============================================
+
+exports.explainSearchSchema = Joi.object({
+    query: Joi.string().trim().max(200).required()
+        .messages({
+            'string.max': '查询文本不能超过200个字符',
+            'any.required': '请提供查询文本'
+        }),
+    cafeNames: Joi.array()
+        .items(Joi.string().trim().max(100))
+        .max(5)
         .required()
         .messages({
-            'any.required': '请提供经度',
-            'number.min': '经度必须在-180到180之间',
-            'number.max': '经度必须在-180到180之间'
-        }),
-    
-    lat: Joi.number()
-        .min(-90)
-        .max(90)
-        .required()
-        .messages({
-            'any.required': '请提供纬度',
-            'number.min': '纬度必须在-90到90之间',
-            'number.max': '纬度必须在-90到90之间'
-        }),
-    
-    distance: Joi.number()
-        .integer()
-        .min(100)
-        .max(50000)
-        .default(5000),
-    
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20)
+            'array.max': '最多提供5个咖啡馆名称',
+            'any.required': '请提供咖啡馆名称列表'
+        })
 });
