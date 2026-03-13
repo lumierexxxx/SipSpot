@@ -1,13 +1,16 @@
 // ============================================
 // SipSpot - Review Controller
-// Handle review operations with AI analysis
+// 评论 CRUD + 投票 + 举报 + AI分析 + 管理员审核
 // ============================================
 
 const Review = require('../models/review');
 const Cafe = require('../models/cafe');
+const User = require('../models/user');
 const ExpressError = require('../utils/ExpressError.js');
 const { deleteImages } = require('../services/cloudinary');
 const { analyzeReview } = require('../services/aiService');
+const embeddingService = require('../services/embeddingService');
+const vectorService = require('../services/vectorService');
 
 /**
  * @desc    Get all reviews for a cafe
@@ -18,16 +21,13 @@ exports.getReviews = async (req, res, next) => {
     try {
         const { cafeId } = req.params;
         const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
-        
-        // Check if cafe exists
+
         const cafe = await Cafe.findById(cafeId);
-        if (!cafe) {
-            return next(new ExpressError('Cafe not found', 404));
-        }
-        
+        if (!cafe) return next(new ExpressError('Cafe not found', 404));
+
         const reviews = await Review.getByCafe(cafeId, { page, limit, sort });
         const total = await Review.countDocuments({ cafe: cafeId });
-        
+
         res.status(200).json({
             success: true,
             count: reviews.length,
@@ -36,7 +36,6 @@ exports.getReviews = async (req, res, next) => {
             pages: Math.ceil(total / parseInt(limit)),
             data: reviews
         });
-        
     } catch (error) {
         next(error);
     }
@@ -52,20 +51,12 @@ exports.getReview = async (req, res, next) => {
         const review = await Review.findById(req.params.id)
             .populate('author', 'username avatar bio')
             .populate('cafe', 'name images rating city');
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        res.status(200).json({
-            success: true,
-            data: review
-        });
-        
+
+        if (!review) return next(new ExpressError('Review not found', 404));
+
+        res.status(200).json({ success: true, data: review });
     } catch (error) {
-        if (error.name === 'CastError') {
-            return next(new ExpressError('Invalid review ID', 400));
-        }
+        if (error.name === 'CastError') return next(new ExpressError('Invalid review ID', 400));
         next(error);
     }
 };
@@ -78,31 +69,25 @@ exports.getReview = async (req, res, next) => {
 exports.createReview = async (req, res, next) => {
     try {
         const { cafeId } = req.params;
-        
-        // Check if cafe exists
+
         const cafe = await Cafe.findById(cafeId);
-        if (!cafe) {
-            return next(new ExpressError('Cafe not found', 404));
-        }
-        
-        // Check if user already reviewed this cafe
+        if (!cafe) return next(new ExpressError('Cafe not found', 404));
+
         const existingReview = await Review.findOne({
             cafe: cafeId,
             author: req.user.id
         });
-        
+
         if (existingReview) {
             return next(new ExpressError('You have already reviewed this cafe', 400));
         }
-        
-        // Create review
+
         const reviewData = {
             ...req.body,
             cafe: cafeId,
             author: req.user.id
         };
-        
-        // Handle images from file upload
+
         if (req.files && req.files.length > 0) {
             reviewData.images = req.files.map(file => ({
                 url: file.path,
@@ -110,29 +95,63 @@ exports.createReview = async (req, res, next) => {
                 publicId: file.filename
             }));
         }
-        
+
         const review = await Review.create(reviewData);
-        
-        // Add review to cafe's reviews array
+
         cafe.reviews.push(review._id);
         await cafe.save({ validateBeforeSave: false });
-        
-        // Trigger AI analysis (async - don't wait)
+
         triggerAIAnalysis(review._id, review.content, cafe.name)
             .catch(err => console.error('AI analysis failed:', err));
-        
-        // Record visit
+
         await req.user.visitCafe(cafeId);
-        
-        // Populate and return
         await review.populate('author', 'username avatar');
-        
+
         res.status(201).json({
             success: true,
             message: 'Review created successfully',
             data: review
         });
-        
+
+        // 高分评论触发偏好向量更新（rating >= 4）
+        process.nextTick(async () => {
+            try {
+                if (review.rating < 4) return;
+                if (!embeddingService.isReady()) return;
+
+                const userId = req.user.id;
+                const freshUser = await User.findById(userId)
+                    .select('+preferenceEmbedding +preferenceHistory +preferenceEmbeddingUpdatedAt');
+                if (!vectorService.shouldUpdatePreference(freshUser)) return;
+
+                const cafeWithEmb = await Cafe.findById(cafeId).select('+embedding');
+                if (!cafeWithEmb || !cafeWithEmb.embedding || cafeWithEmb.embedding.length !== 1024) return;
+
+                await User.findByIdAndUpdate(userId, {
+                    $push: {
+                        preferenceHistory: {
+                            $each: [{ cafeId, weight: 1, addedAt: new Date() }],
+                            $slice: -100
+                        }
+                    }
+                }, { runValidators: false });
+
+                const updatedUser = await User.findById(userId).select('+preferenceHistory');
+                const cafeMap = await buildCafeEmbeddingMap(updatedUser.preferenceHistory);
+                const historyItems = buildHistoryItems(updatedUser.preferenceHistory, cafeMap);
+                const newEmbedding = vectorService.computeUserEmbedding(historyItems);
+                if (newEmbedding.length === 0) return;
+
+                await User.findByIdAndUpdate(userId, {
+                    preferenceEmbedding: newEmbedding,
+                    preferenceEmbeddingUpdatedAt: new Date()
+                }, { runValidators: false });
+
+                console.log(`✅ 高分评论触发偏好向量更新 (用户: ${userId})`);
+            } catch (e) {
+                console.error('❌ 评论触发偏好更新失败:', e.message);
+            }
+        });
     } catch (error) {
         next(error);
     }
@@ -146,39 +165,31 @@ exports.createReview = async (req, res, next) => {
 exports.updateReview = async (req, res, next) => {
     try {
         let review = await Review.findById(req.params.id);
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        // Check ownership
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         if (review.author.toString() !== req.user.id) {
             return next(new ExpressError('Not authorized to update this review', 403));
         }
-        
-        // Restricted fields
+
         const restrictedFields = ['author', 'cafe', 'helpfulCount', 'helpfulVotes'];
         restrictedFields.forEach(field => delete req.body[field]);
-        
-        // Update review
+
         Object.assign(review, req.body);
         await review.markAsEdited();
-        
-        // Re-trigger AI analysis if content changed
+
         if (req.body.content) {
             const cafe = await Cafe.findById(review.cafe);
             triggerAIAnalysis(review._id, review.content, cafe.name)
                 .catch(err => console.error('AI analysis failed:', err));
         }
-        
+
         await review.populate('author', 'username avatar');
-        
+
         res.status(200).json({
             success: true,
             message: 'Review updated successfully',
             data: review
         });
-        
     } catch (error) {
         next(error);
     }
@@ -192,17 +203,12 @@ exports.updateReview = async (req, res, next) => {
 exports.deleteReview = async (req, res, next) => {
     try {
         const review = await Review.findById(req.params.id);
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        // Check ownership (unless admin)
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         if (review.author.toString() !== req.user.id && req.user.role !== 'admin') {
             return next(new ExpressError('Not authorized to delete this review', 403));
         }
-        
-        // Remove from cafe's reviews array
+
         const cafe = await Cafe.findById(review.cafe);
         if (cafe) {
             cafe.reviews = cafe.reviews.filter(
@@ -210,28 +216,23 @@ exports.deleteReview = async (req, res, next) => {
             );
             await cafe.save({ validateBeforeSave: false });
         }
-        
-        // Delete images from Cloudinary
+
         if (review.images && review.images.length > 0) {
             const publicIds = review.images.map(img => img.publicId);
             try {
                 await deleteImages(publicIds);
-                console.log(`Deleted ${publicIds.length} review images from Cloudinary`);
             } catch (error) {
                 console.error('Error deleting review images from Cloudinary:', error);
-                // Continue with review deletion even if image deletion fails
             }
         }
-        
-        // Delete review (will trigger rating recalculation)
+
         await review.deleteOne();
-        
+
         res.status(200).json({
             success: true,
             message: 'Review deleted successfully',
             data: {}
         });
-        
     } catch (error) {
         next(error);
     }
@@ -244,25 +245,21 @@ exports.deleteReview = async (req, res, next) => {
  */
 exports.voteHelpful = async (req, res, next) => {
     try {
-        const { voteType } = req.body; // 'helpful' or 'not-helpful'
-        
+        const { voteType } = req.body;
+
         if (!['helpful', 'not-helpful'].includes(voteType)) {
             return next(new ExpressError('Invalid vote type', 400));
         }
-        
+
         const review = await Review.findById(req.params.id);
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        // Can't vote on own review
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         if (review.author.toString() === req.user.id) {
             return next(new ExpressError('Cannot vote on your own review', 400));
         }
-        
+
         await review.addHelpfulVote(req.user.id, voteType);
-        
+
         res.status(200).json({
             success: true,
             message: 'Vote recorded',
@@ -272,7 +269,6 @@ exports.voteHelpful = async (req, res, next) => {
                 helpfulPercentage: review.helpfulPercentage
             }
         });
-        
     } catch (error) {
         next(error);
     }
@@ -286,13 +282,10 @@ exports.voteHelpful = async (req, res, next) => {
 exports.removeVote = async (req, res, next) => {
     try {
         const review = await Review.findById(req.params.id);
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         await review.removeHelpfulVote(req.user.id);
-        
+
         res.status(200).json({
             success: true,
             message: 'Vote removed',
@@ -301,7 +294,6 @@ exports.removeVote = async (req, res, next) => {
                 notHelpfulCount: review.notHelpfulCount
             }
         });
-        
     } catch (error) {
         next(error);
     }
@@ -315,18 +307,14 @@ exports.removeVote = async (req, res, next) => {
 exports.reportReview = async (req, res, next) => {
     try {
         const review = await Review.findById(req.params.id);
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         await review.report();
-        
+
         res.status(200).json({
             success: true,
             message: 'Review reported successfully'
         });
-        
     } catch (error) {
         next(error);
     }
@@ -340,33 +328,25 @@ exports.reportReview = async (req, res, next) => {
 exports.addOwnerResponse = async (req, res, next) => {
     try {
         const { content } = req.body;
-        
-        if (!content) {
-            return next(new ExpressError('Please provide response content', 400));
-        }
-        
+        if (!content) return next(new ExpressError('Please provide response content', 400));
+
         const review = await Review.findById(req.params.id).populate('cafe');
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        // Check if user is cafe owner or admin
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         const isOwner = review.cafe.author.toString() === req.user.id;
         const isAdmin = req.user.role === 'admin';
-        
+
         if (!isOwner && !isAdmin) {
             return next(new ExpressError('Not authorized to respond to this review', 403));
         }
-        
+
         await review.addOwnerResponse(content, req.user.id);
-        
+
         res.status(200).json({
             success: true,
             message: 'Response added successfully',
             data: review
         });
-        
     } catch (error) {
         next(error);
     }
@@ -377,32 +357,24 @@ exports.addOwnerResponse = async (req, res, next) => {
  * @route   POST /api/reviews/:id/analyze
  * @access  Private (Admin or review author)
  */
-exports.analyzeReview = async (req, res, next) => {
+exports.analyzeReviewEndpoint = async (req, res, next) => {
     try {
         const review = await Review.findById(req.params.id).populate('cafe', 'name');
-        
-        if (!review) {
-            return next(new ExpressError('Review not found', 404));
-        }
-        
-        // Check authorization
+        if (!review) return next(new ExpressError('Review not found', 404));
+
         if (review.author.toString() !== req.user.id && req.user.role !== 'admin') {
             return next(new ExpressError('Not authorized', 403));
         }
-        
-        // Call AI service
+
         const analysis = await triggerAIAnalysis(
-            review._id,
-            review.content,
-            review.cafe.name
+            review._id, review.content, review.cafe.name
         );
-        
+
         res.status(200).json({
             success: true,
             message: 'AI analysis completed',
             data: analysis
         });
-        
     } catch (error) {
         next(error);
     }
@@ -417,41 +389,14 @@ exports.getMostHelpful = async (req, res, next) => {
     try {
         const { cafeId } = req.params;
         const { limit = 5 } = req.query;
-        
-        const reviews = await Review.getMostHelpful(cafeId, parseInt(limit));
-        
-        res.status(200).json({
-            success: true,
-            count: reviews.length,
-            data: reviews
-        });
-        
-    } catch (error) {
-        next(error);
-    }
-};
 
-/**
- * @desc    Get user's reviews
- * @route   GET /api/users/me/reviews
- * @access  Private
- */
-exports.getUserReviews = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query;
-        
-        const reviews = await Review.getByUser(req.user.id, { page, limit });
-        const total = await Review.countDocuments({ author: req.user.id });
-        
+        const reviews = await Review.getMostHelpful(cafeId, parseInt(limit));
+
         res.status(200).json({
             success: true,
             count: reviews.length,
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
             data: reviews
         });
-        
     } catch (error) {
         next(error);
     }
@@ -465,10 +410,9 @@ exports.getUserReviews = async (req, res, next) => {
 exports.getSentimentStats = async (req, res, next) => {
     try {
         const { cafeId } = req.params;
-        
         const stats = await Review.getSentimentStats(cafeId);
         const total = stats.positive + stats.negative + stats.neutral;
-        
+
         res.status(200).json({
             success: true,
             data: {
@@ -481,7 +425,61 @@ exports.getSentimentStats = async (req, res, next) => {
                 }
             }
         });
-        
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
+// 管理员审核功能（从 reviewsStandalone 移入）
+// ============================================
+
+/**
+ * @desc    获取所有被举报的评论
+ * @route   GET /api/reviews/admin/reported
+ * @access  Private (仅管理员)
+ */
+exports.getReportedReviews = async (req, res, next) => {
+    try {
+        const reportedReviews = await Review.find({ isReported: true })
+            .populate('author', 'username email avatar')
+            .populate('cafe', 'name')
+            .sort('-reportCount -createdAt')
+            .limit(100);
+
+        res.status(200).json({
+            success: true,
+            count: reportedReviews.length,
+            data: reportedReviews
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    审核评论（管理员）
+ * @route   PUT /api/reviews/:id/moderate
+ * @access  Private (仅管理员)
+ */
+exports.moderateReview = async (req, res, next) => {
+    try {
+        const { action, reason } = req.body;
+        const review = await Review.findById(req.params.id);
+
+        if (!review) return next(new ExpressError('评论不存在', 404));
+
+        if (action === 'approve') {
+            review.isReported = false;
+            review.reportCount = 0;
+            await review.save();
+            res.status(200).json({ success: true, message: '评论已批准' });
+        } else if (action === 'remove') {
+            await review.deleteOne();
+            res.status(200).json({ success: true, message: '评论已删除', reason });
+        } else {
+            return next(new ExpressError('无效的操作', 400));
+        }
     } catch (error) {
         next(error);
     }
@@ -491,25 +489,43 @@ exports.getSentimentStats = async (req, res, next) => {
 // Helper Functions
 // ============================================
 
-/**
- * Trigger AI analysis for a review
- * Uses Gemini API via aiService
- */
 async function triggerAIAnalysis(reviewId, content, cafeName) {
     try {
         const analysisData = await analyzeReview(content, cafeName);
-        
-        // Save analysis to review
         const review = await Review.findById(reviewId);
         if (review) {
             await review.addAIAnalysis(analysisData);
             return analysisData;
         }
-        
         return null;
     } catch (error) {
         console.error('AI Analysis Error:', error.message);
-        // Don't throw - allow review creation to succeed even if AI fails
         return null;
     }
+}
+
+// ============================================
+// 偏好向量计算辅助函数（与 userController.js 相同）
+// ============================================
+
+async function buildCafeEmbeddingMap(history) {
+    const ids = history.map(h => h.cafeId);
+    const cafes = await Cafe.find({ _id: { $in: ids } }).select('+embedding');
+    const map = new Map();
+    cafes.forEach(c => {
+        if (c.embedding && c.embedding.length === 1024) {
+            map.set(c._id.toString(), c.embedding);
+        }
+    });
+    return map;
+}
+
+function buildHistoryItems(history, cafeMap) {
+    return history
+        .map(h => ({
+            embedding: cafeMap.get(h.cafeId.toString()),
+            weight: h.weight,
+            addedAt: h.addedAt
+        }))
+        .filter(h => h.embedding);
 }
