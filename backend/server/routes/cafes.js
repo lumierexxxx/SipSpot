@@ -1,12 +1,16 @@
 // ============================================
 // SipSpot - Cafe Routes
-// RESTful API endpoints for cafe operations
+// 咖啡店 CRUD + 搜索 + 附近 + 语义搜索
+// 重要：所有静态路由必须在 /:cafeId 通配符路由之前！
 // ============================================
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { protect, optionalAuth } = require('../middleware/auth');
 const { uploadCafeImages } = require('../services/cloudinary');
+const { validate, cafeSchema, explainSearchSchema } = require('../utils/validation');
+
 const {
     getCafes,
     getNearby,
@@ -20,99 +24,43 @@ const {
     getCafeStats
 } = require('../controllers/cafeController');
 
-// Import nested review routes
-const reviewRoutes = require('./reviews');
+const { aiSearch, explainSearch } = require('../controllers/aiSearchController');
+
+// explain 接口独立限流：10 次/分钟/IP（防止 Qwen token 滥用）
+const explainLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { success: false, message: '请求过于频繁，请稍后再试' }
+});
 
 // ============================================
-// Nested Review Routes
-// Mount review routes under /:cafeId/reviews
-// ============================================
-router.use('/:cafeId/reviews', reviewRoutes);
-
-// ============================================
-// Public Routes
+// 公开路由（静态路由必须在 /:id 之前）
 // ============================================
 
-/**
- * @route   GET /api/cafes
- * @desc    Get all cafes with filtering and pagination
- * @access  Public
- * @query   city, amenities, minRating, maxPrice, search, page, limit, sort
- */
+router.post('/ai-search', aiSearch);
+router.post('/ai-search/explain', explainLimiter, validate(explainSearchSchema), explainSearch);
+
 router.get('/', optionalAuth, getCafes);
-
-/**
- * @route   GET /api/cafes/nearby
- * @desc    Get cafes near a location (geospatial query)
- * @access  Public
- * @query   lng, lat, distance (meters), limit
- */
 router.get('/nearby', getNearby);
-
-/**
- * @route   GET /api/cafes/top/rated
- * @desc    Get top-rated cafes
- * @access  Public
- * @query   limit, city
- */
 router.get('/top/rated', getTopRated);
-
-/**
- * @route   GET /api/cafes/search
- * @desc    Search cafes by text
- * @access  Public
- * @query   q (search query), city, minRating, maxPrice, amenities, limit
- */
 router.get('/search', searchCafes);
-
-/**
- * @route   GET /api/cafes/amenities/:amenity
- * @desc    Get cafes by specific amenities
- * @access  Public
- * @param   amenity - Single amenity or comma-separated list
- * @query   city, limit
- */
 router.get('/amenities/:amenity', getCafesByAmenities);
-
-/**
- * @route   GET /api/cafes/:id
- * @desc    Get single cafe by ID
- * @access  Public
- */
+router.get('/:id/stats', getCafeStats);
 router.get('/:id', optionalAuth, getCafe);
 
-/**
- * @route   GET /api/cafes/:id/stats
- * @desc    Get cafe statistics (ratings, reviews, etc.)
- * @access  Public
- */
-router.get('/:id/stats', getCafeStats);
-
 // ============================================
-// Protected Routes (Require Authentication)
+// 受保护路由
 // ============================================
 
-/**
- * @route   POST /api/cafes
- * @desc    Create new cafe
- * @access  Private (Authenticated users)
- * @body    name, description, geometry, address, city, price, amenities, etc.
- * @files   images (optional, max 10)
- */
-router.post('/', protect, uploadCafeImages, createCafe);
-
-/**
- * @route   PUT /api/cafes/:id
- * @desc    Update cafe
- * @access  Private (Owner or Admin)
- */
+router.post('/', protect, validate(cafeSchema), uploadCafeImages, createCafe);
 router.put('/:id', protect, updateCafe);
-
-/**
- * @route   DELETE /api/cafes/:id
- * @desc    Delete cafe
- * @access  Private (Owner or Admin)
- */
 router.delete('/:id', protect, deleteCafe);
+
+// ============================================
+// 嵌套评论路由
+// 必须放在最后！/:cafeId 会匹配所有未命中的路径
+// ============================================
+const reviewRoutes = require('./reviews');
+router.use('/:cafeId/reviews', reviewRoutes);
 
 module.exports = router;
