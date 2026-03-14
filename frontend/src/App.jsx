@@ -5,8 +5,10 @@
 
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from '@components/Navbar';
-import { useAuth } from '@contexts/AuthContext';
+import Navbar from './components/Navbar';
+import { useAuth } from './contexts/AuthContext';
+import { Coffee, Instagram, Twitter, Youtube } from 'lucide-react';
+import { Toaster } from '@components/ui/sonner';
 
 // ============================================
 // 懒加载页面组件（代码分割优化）
@@ -22,6 +24,10 @@ const CreateCafePage = lazy(() => import('./pages/CreateCafePage'));
 const EditCafePage = lazy(() => import('./pages/EditCafePage'));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 const MyReviewsPage = lazy(() => import('./pages/MyReviewsPage'));
+const AISearchPage = lazy(() => import('./pages/AISearchPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // ============================================
@@ -30,8 +36,8 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const LoadingFallback = () => (
     <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-            <div className="spinner w-12 h-12 mx-auto mb-4" />
-            <p className="text-gray-600">加载中...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4" />
+            <p className="text-stone-500" style={{ fontSize: '0.9rem' }}>Loading...</p>
         </div>
     </div>
 );
@@ -76,7 +82,7 @@ const GuestRoute = ({ children }) => {
 function App() {
     return (
         <Router>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-white">
                 {/* 导航栏 */}
                 <Navbar />
 
@@ -90,6 +96,9 @@ function App() {
                             
                             {/* 首页 */}
                             <Route path="/" element={<Home />} />
+
+                            {/* AI 智能搜索 */}
+                            <Route path="/ai-search" element={<AISearchPage />} />
 
                             {/* 咖啡店列表 */}
                             <Route path="/cafes" element={<CafeListPage />} />
@@ -126,6 +135,15 @@ function App() {
                                     </GuestRoute>
                                 }
                             />
+
+                            {/* 忘记密码 */}
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+                            {/* 重置密码（通过邮件链接） */}
+                            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+                            {/* 邮箱验证 */}
+                            <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
 
                             {/* ============================================ */}
                             {/* 受保护路由（需要登录） */}
@@ -200,75 +218,57 @@ function App() {
                 </main>
 
                 {/* ============================================ */}
-                {/* 页脚 */}
+                {/* Footer — Brewly dark style */}
                 {/* ============================================ */}
-                <footer className="bg-white border-t border-gray-200 mt-20">
-                    <div className="container-custom py-8">
-                        <div className="grid md:grid-cols-4 gap-8">
-                            {/* 品牌信息 */}
-                            <div className="col-span-2">
-                                <div className="flex items-center space-x-2 mb-4">
-                                    <div className="w-10 h-10 bg-linear-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
-                                        <span className="text-2xl">☕</span>
+                <footer className="bg-stone-900 text-stone-400">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+                            {/* Brand */}
+                            <div className="lg:col-span-1">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 bg-amber-700 rounded-lg flex items-center justify-center">
+                                        <Coffee className="w-4 h-4 text-white" />
                                     </div>
-                                    <span className="text-xl font-bold text-gray-900">
-                                        SipSpot
-                                    </span>
+                                    <span className="text-white" style={{ fontSize: '1.15rem', fontWeight: 700 }}>SipSpot</span>
                                 </div>
-                                <p className="text-gray-600 mb-4">
-                                    发现身边最好的咖啡店，分享你的咖啡时光
+                                <p style={{ fontSize: '0.85rem', lineHeight: 1.65 }} className="text-stone-500 mb-5">
+                                    The most trusted coffee shop discovery and review platform.
                                 </p>
-                                <p className="text-sm text-gray-500">
-                                    © 2024 SipSpot. All rights reserved.
-                                </p>
+                                <div className="flex gap-3">
+                                    {[Instagram, Twitter, Youtube].map((Icon, i) => (
+                                        <a key={i} href="#" className="w-8 h-8 bg-stone-800 hover:bg-amber-700 rounded-lg flex items-center justify-center transition-colors">
+                                            <Icon className="w-4 h-4" />
+                                        </a>
+                                    ))}
+                                </div>
                             </div>
 
-                            {/* 快速链接 */}
-                            <div>
-                                <h3 className="font-semibold text-gray-900 mb-3">
-                                    快速链接
-                                </h3>
-                                <ul className="space-y-2">
-                                    <li>
-                                        <a href="/cafes" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            所有咖啡店
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/nearby" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            附近咖啡店
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/cafes/new" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            添加咖啡店
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                            {/* Link columns */}
+                            {Object.entries({
+                                Discover: ['Top Rated', 'New Openings', 'Near Me', 'AI Search', 'All Cafés'],
+                                Community: ['Write a Review', 'Add a Café', 'SipSpot Awards', 'Coffee Events', 'Ambassador Program'],
+                                Company: ['About Us', 'Press', 'Careers', 'Partnerships', 'Contact'],
+                                Support: ['Help Center', 'Privacy Policy', 'Terms of Use', 'Cookie Settings'],
+                            }).map(([section, links]) => (
+                                <div key={section}>
+                                    <h4 className="text-white mb-4" style={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.04em' }}>{section}</h4>
+                                    <ul className="flex flex-col gap-2.5">
+                                        {links.map(link => (
+                                            <li key={link}>
+                                                <a href="#" className="hover:text-amber-400 transition-colors" style={{ fontSize: '0.85rem' }}>{link}</a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
 
-                            {/* 关于 */}
-                            <div>
-                                <h3 className="font-semibold text-gray-900 mb-3">
-                                    关于我们
-                                </h3>
-                                <ul className="space-y-2">
-                                    <li>
-                                        <a href="/about" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            关于 SipSpot
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/contact" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            联系我们
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="/privacy" className="text-gray-600 hover:text-amber-600 transition-colors">
-                                            隐私政策
-                                        </a>
-                                    </li>
-                                </ul>
+                        <div className="border-t border-stone-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <p style={{ fontSize: '0.8rem' }}>© 2026 SipSpot, Inc. All rights reserved.</p>
+                            <div className="flex items-center gap-1.5" style={{ fontSize: '0.8rem' }}>
+                                <span>Made with</span>
+                                <span className="text-amber-600">☕</span>
+                                <span>for coffee lovers everywhere</span>
                             </div>
                         </div>
                     </div>
@@ -278,6 +278,7 @@ function App() {
                 {/* 回到顶部按钮 */}
                 {/* ============================================ */}
                 <ScrollToTop />
+                <Toaster />
             </div>
         </Router>
     );
