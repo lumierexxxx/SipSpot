@@ -241,7 +241,7 @@ const CafeSchema = new Schema({
     // 向量 Embedding（语义搜索用）
     // ============================================
     embedding: {
-        type: [Number],           // 1024 维，bge-m3 输出
+        type: [Number],           // 768 维，multilingual-e5-base 输出
         default: [],
         select: false             // 默认查询不返回，按需 .select('+embedding')
     },

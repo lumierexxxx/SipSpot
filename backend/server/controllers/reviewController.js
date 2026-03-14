@@ -125,7 +125,7 @@ exports.createReview = async (req, res, next) => {
                 if (!vectorService.shouldUpdatePreference(freshUser)) return;
 
                 const cafeWithEmb = await Cafe.findById(cafeId).select('+embedding');
-                if (!cafeWithEmb || !cafeWithEmb.embedding || cafeWithEmb.embedding.length !== 1024) return;
+                if (!cafeWithEmb || !cafeWithEmb.embedding || cafeWithEmb.embedding.length !== 768) return;
 
                 await User.findByIdAndUpdate(userId, {
                     $push: {
@@ -513,7 +513,7 @@ async function buildCafeEmbeddingMap(history) {
     const cafes = await Cafe.find({ _id: { $in: ids } }).select('+embedding');
     const map = new Map();
     cafes.forEach(c => {
-        if (c.embedding && c.embedding.length === 1024) {
+        if (c.embedding && c.embedding.length === 768) {
             map.set(c._id.toString(), c.embedding);
         }
     });

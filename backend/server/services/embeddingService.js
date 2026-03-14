@@ -1,6 +1,6 @@
 // ============================================
 // SipSpot - Embedding Service
-// HuggingFace bge-m3 模型单例
+// HuggingFace multilingual-e5-base 模型单例
 // 服务器启动时预热，后续复用
 // NOTE: @xenova/transformers 是 ESM 包，必须用 await import() 而不是 require()
 // ============================================
@@ -20,15 +20,15 @@ let _ready = false;
  * @returns {Promise<void>}
  */
 async function init() {
-    console.log('⏳ 正在加载 bge-m3 embedding 模型...');
-    console.log('   首次运行将下载约 570MB 模型文件，请稍候');
+    console.log('⏳ 正在加载 multilingual-e5-base embedding 模型...');
+    console.log('   首次运行将下载约 280MB 模型文件，请稍候');
 
     // 动态 import ESM 包（CommonJS 中不能用 require）
     const { pipeline } = await import('@xenova/transformers');
 
     _pipeline = await pipeline(
         'feature-extraction',
-        'Xenova/bge-m3'
+        'Xenova/multilingual-e5-base'
     );
 
     _ready = true;
@@ -48,17 +48,20 @@ function isReady() {
 
 /**
  * 生成单条文本的 embedding
- * @param {string} text - 原始文本（bge-m3 无需前缀，直接传入）
- * @param {'query'|'passage'} type - 保留参数（暂未使用，bge-m3 prefix-free）
- * @returns {Promise<number[]>} 1024 维向量
+ * @param {string} text - 原始文本
+ * @param {'query'|'passage'} type - E5 模型需要前缀：查询用 "query:"，文档用 "passage:"
+ * @returns {Promise<number[]>} 768 维向量
  */
 async function generateEmbedding(text, type = 'query') {
     if (!_ready || !_pipeline) {
         throw new Error('Embedding 模型未就绪');
     }
 
-    // bge-m3 是 prefix-free 模型，无需添加 "query:" 或 "passage:" 前缀
-    const output = await _pipeline(text, {
+    // E5 模型需要前缀以提高检索精度
+    const prefixed = type === 'query'
+        ? `query: ${text}`
+        : `passage: ${text}`;
+    const output = await _pipeline(prefixed, {
         pooling: 'mean',
         normalize: true
     });

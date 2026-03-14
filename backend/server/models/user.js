@@ -190,7 +190,7 @@ const userSchema = new mongoose.Schema({
     // 用户偏好向量（个性化推荐用）
     // ============================================
     preferenceEmbedding: {
-        type: [Number],           // 1024 维，L2 归一化后的加权平均
+        type: [Number],           // 768 维，L2 归一化后的加权平均
         default: [],
         select: false
     },

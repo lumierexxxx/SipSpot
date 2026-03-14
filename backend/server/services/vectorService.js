@@ -48,7 +48,7 @@ function normalizeVector(v) {
 
 /**
  * 按语义相似度对咖啡馆排序
- * @param {number[]} queryEmb - 查询向量（1024 维）
+ * @param {number[]} queryEmb - 查询向量（768 维）
  * @param {Array} cafes - 含 embedding 字段的对象数组（Mongoose lean 或普通对象均可）
  * @param {Object} options
  * @param {string[]} [options.amenityBoost] - 中文设施名称，匹配则加分，e.g. ['WiFi', '安静环境']
@@ -59,7 +59,7 @@ function rankCafes(queryEmb, cafes, options = {}) {
     const { amenityBoost = [], topK = 10 } = options;
 
     const scored = cafes
-        .filter(cafe => cafe.embedding && cafe.embedding.length === 1024)
+        .filter(cafe => cafe.embedding && cafe.embedding.length === 768)
         .map(cafe => {
             let score = cosineSimilarity(queryEmb, cafe.embedding);
 
@@ -89,7 +89,7 @@ function computeUserEmbedding(historyItems) {
     if (!historyItems || historyItems.length === 0) return [];
 
     const valid = historyItems.filter(
-        item => item.embedding && item.embedding.length === 1024
+        item => item.embedding && item.embedding.length === 768
     );
     if (valid.length === 0) return [];
 
@@ -98,7 +98,7 @@ function computeUserEmbedding(historyItems) {
     const window = sorted.slice(0, 30);
 
     // 指数衰减：越新的权重越高 effectiveWeight = item.weight × 0.85^index
-    const dim = 1024;
+    const dim = 768;
     const avg = new Array(dim).fill(0);
     let totalWeight = 0;
 

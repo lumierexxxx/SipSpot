@@ -53,7 +53,7 @@ exports.getRecommendations = async (req, res, next) => {
             .limit(50);
 
         // ── 向量推荐路径 ──────────────────────────────────
-        if (user.preferenceEmbedding && user.preferenceEmbedding.length >= 1024) {
+        if (user.preferenceEmbedding && user.preferenceEmbedding.length >= 768) {
             console.log('🧮 使用向量推荐');
 
             const candidates = await Cafe.find({
