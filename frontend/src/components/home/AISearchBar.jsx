@@ -1,23 +1,30 @@
 // ============================================
 // SipSpot — AISearchBar
 // ============================================
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { POPULAR_AI_TAGS } from '@utils/homeData';
 
-export default function AISearchBar({ value, onChange, onSubmit }) {
+export default function AISearchBar() {
+    const [aiQuery, setAiQuery] = useState('');
     const navigate = useNavigate();
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (aiQuery.trim()) navigate(`/ai-search?query=${encodeURIComponent(aiQuery.trim())}`);
+    };
 
     return (
         <>
-            <form onSubmit={onSubmit} className="max-w-2xl mx-auto mb-4">
+            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mb-4">
                 <div className="flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/25 rounded-2xl px-5 py-3.5 transition-colors group">
                     <Sparkles className="w-5 h-5 text-amber-300 flex-shrink-0" />
                     <input
                         type="text"
                         placeholder="Don't know where to go? Try AI search — describe your vibe or mood..."
-                        value={value}
-                        onChange={onChange}
+                        value={aiQuery}
+                        onChange={(e) => setAiQuery(e.target.value)}
                         className="flex-1 outline-none bg-transparent text-white placeholder:text-white/50"
                         style={{ fontSize: '0.9rem' }}
                     />

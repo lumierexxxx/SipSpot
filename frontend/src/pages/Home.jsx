@@ -22,7 +22,6 @@ const Home = () => {
 
     const [query, setQuery] = useState('');
     const [location, setLocation] = useState('');
-    const [aiQuery, setAiQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [email, setEmail] = useState('');
     const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
@@ -41,11 +40,6 @@ const Home = () => {
         navigate(`/cafes?${params.toString()}`);
     };
 
-    const handleAISearch = (e) => {
-        e.preventDefault();
-        if (aiQuery.trim()) navigate(`/ai-search?query=${encodeURIComponent(aiQuery.trim())}`);
-    };
-
     const handleNewsletterSubmit = (e) => {
         e.preventDefault();
         if (email) setNewsletterSubmitted(true);
@@ -61,11 +55,7 @@ const Home = () => {
                     onLocationChange={(e) => setLocation(e.target.value)}
                     onSubmit={handleSearch}
                 />
-                <AISearchBar
-                    value={aiQuery}
-                    onChange={(e) => setAiQuery(e.target.value)}
-                    onSubmit={handleAISearch}
-                />
+                <AISearchBar />
                 <HeroStats />
             </HeroSection>
 

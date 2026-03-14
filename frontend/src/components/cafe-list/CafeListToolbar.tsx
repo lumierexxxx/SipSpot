@@ -3,9 +3,9 @@
 // ============================================
 import type { FilterState } from '@/types/cafe';
 import { SORT_OPTIONS } from '@utils/cafeListData';
-import ActiveFilterChips from './ActiveFilterChips';
-import SortSelect from './SortSelect';
-import ViewToggle from './ViewToggle';
+import ActiveFilterChips from '@components/cafe-list/ActiveFilterChips';
+import SortSelect from '@components/cafe-list/SortSelect';
+import ViewToggle from '@components/cafe-list/ViewToggle';
 
 interface Props {
     resultCount: number;

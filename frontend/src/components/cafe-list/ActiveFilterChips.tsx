@@ -34,7 +34,7 @@ export default function ActiveFilterChips({ filters, onFilterChange, onAmenityTo
             )}
             {filters.maxPrice && (
                 <button onClick={() => onFilterChange('maxPrice', '')} className="flex items-center gap-1.5 bg-amber-100 text-amber-700 rounded-full px-3 py-1 hover:bg-amber-200 transition-colors" style={{ fontSize: '0.75rem' }}>
-                    {'$'.repeat(Number(filters.maxPrice))} <X className="w-3 h-3" />
+                    {'¥'.repeat(Number(filters.maxPrice))} <X className="w-3 h-3" />
                 </button>
             )}
             {filters.amenities.map(a => (
