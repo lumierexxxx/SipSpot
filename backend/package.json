@@ -9,6 +9,7 @@
     "test": "jest --watchAll --verbose",
     "test:once": "jest --verbose",
     "seed": "node server/seeds/index.js",
+    "generate-embeddings": "node server/seeds/generate_embeddings.js",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.js\""
   },
