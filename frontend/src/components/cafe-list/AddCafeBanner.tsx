@@ -1,6 +1,7 @@
 // ============================================
 // SipSpot — AddCafeBanner
 // ============================================
+import { useTranslation } from 'react-i18next';
 import { Coffee, Plus } from 'lucide-react';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function AddCafeBanner({ onAddCafe }: Props) {
+    const { t } = useTranslation('cafeList');
     return (
         <div className="mt-10 bg-gradient-to-r from-amber-700 to-amber-600 rounded-3xl p-7 flex flex-col sm:flex-row items-center justify-between gap-5">
             <div className="flex items-center gap-4">
@@ -15,8 +17,8 @@ export default function AddCafeBanner({ onAddCafe }: Props) {
                     <Coffee className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <h3 className="text-white" style={{ fontSize: '1rem', fontWeight: 700 }}>Know a great café we're missing?</h3>
-                    <p className="text-amber-100" style={{ fontSize: '0.85rem' }}>Help the community by adding it to SipSpot.</p>
+                    <h3 className="text-white" style={{ fontSize: '1rem', fontWeight: 700 }}>{t('banner.heading')}</h3>
+                    <p className="text-amber-100" style={{ fontSize: '0.85rem' }}>{t('banner.body')}</p>
                 </div>
             </div>
             <button
@@ -25,7 +27,7 @@ export default function AddCafeBanner({ onAddCafe }: Props) {
                 style={{ fontSize: '0.9rem', fontWeight: 600 }}
             >
                 <Plus className="w-4 h-4" />
-                Add a Café
+                {t('banner.button')}
             </button>
         </div>
     );

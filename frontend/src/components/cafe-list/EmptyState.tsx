@@ -1,6 +1,7 @@
 // ============================================
 // SipSpot — EmptyState (CafeListPage)
 // ============================================
+import { useTranslation } from 'react-i18next';
 import { Coffee, X } from 'lucide-react';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function EmptyState({ myOnly, hasError, errorMessage, onRetry, onClear, onAddCafe }: Props) {
+    const { t } = useTranslation('cafeList');
     if (hasError) {
         return (
             <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-12 text-center">
@@ -34,10 +36,10 @@ export default function EmptyState({ myOnly, hasError, errorMessage, onRetry, on
                 <Coffee className="w-7 h-7 text-stone-300" />
             </div>
             <h3 className="text-stone-600 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>
-                {myOnly ? 'No cafés added yet' : 'No cafés found'}
+                {myOnly ? 'No cafés added yet' : t('empty.heading')}
             </h3>
             <p className="text-stone-400 mb-5" style={{ fontSize: '0.88rem' }}>
-                {myOnly ? 'Start by adding your first café!' : 'Try adjusting your filters or search term'}
+                {myOnly ? 'Start by adding your first café!' : t('empty.body')}
             </p>
             {myOnly ? (
                 <button onClick={onAddCafe} className="bg-amber-700 text-white px-5 py-2.5 rounded-full hover:bg-amber-800 transition-colors" style={{ fontSize: '0.88rem' }}>
@@ -45,7 +47,7 @@ export default function EmptyState({ myOnly, hasError, errorMessage, onRetry, on
                 </button>
             ) : (
                 <button onClick={onClear} className="bg-amber-700 text-white px-5 py-2.5 rounded-full hover:bg-amber-800 transition-colors" style={{ fontSize: '0.88rem' }}>
-                    Clear Filters
+                    {t('empty.retry')}
                 </button>
             )}
         </div>

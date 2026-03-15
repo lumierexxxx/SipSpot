@@ -1,6 +1,7 @@
 // ============================================
 // SipSpot — CafeListToolbar
 // ============================================
+import { useTranslation } from 'react-i18next';
 import type { FilterState } from '@/types/cafe';
 import { SORT_OPTIONS } from '@utils/cafeListData';
 import ActiveFilterChips from '@components/cafe-list/ActiveFilterChips';
@@ -22,14 +23,14 @@ export default function CafeListToolbar({
     resultCount, totalCount, filters, view,
     onSortChange, onViewChange, onFilterChange, onAmenityToggle,
 }: Props) {
+    const { t } = useTranslation('cafeList');
     return (
         <div className="flex items-center justify-between mb-5 gap-4">
             <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-stone-500" style={{ fontSize: '0.88rem' }}>
                     <strong className="text-stone-800">{resultCount}</strong>
                     {' / '}
-                    <strong className="text-stone-800">{totalCount}</strong>
-                    {' '}{totalCount === 1 ? 'café' : 'cafés'}
+                    {t('toolbar.results', { count: totalCount })}
                 </span>
                 <ActiveFilterChips
                     filters={filters}
