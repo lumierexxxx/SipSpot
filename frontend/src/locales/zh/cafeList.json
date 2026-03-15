@@ -1,0 +1,59 @@
+{
+  "header": {
+    "title": "发现咖啡店",
+    "subtitle": "找到你的完美咖啡店 — 按名称搜索、按氛围筛选，或探索附近好店。"
+  },
+  "search": {
+    "namePlaceholder": "搜索咖啡店…",
+    "cityPlaceholder": "城市或地区…"
+  },
+  "filters": {
+    "title": "筛选",
+    "rating": "评分",
+    "price": "价格",
+    "amenities": "设施",
+    "vibe": "氛围",
+    "sortBy": "排序方式",
+    "clearAll": "清除全部",
+    "sortOptions": {
+      "highestRated": "评分最高",
+      "newestFirst": "最新上线",
+      "mostReviewed": "评论最多",
+      "priceLowHigh": "价格：低到高",
+      "nameAZ": "名称：A–Z"
+    },
+    "priceLabels": {
+      "budget": "¥ 实惠",
+      "moderate": "¥¥ 适中",
+      "upscale": "¥¥¥ 中高档",
+      "luxury": "¥¥¥¥ 奢华"
+    }
+  },
+  "toolbar": {
+    "results_one": "找到 {{count}} 家咖啡店",
+    "results_other": "找到 {{count}} 家咖啡店",
+    "grid": "网格",
+    "list": "列表"
+  },
+  "banner": {
+    "heading": "知道一家我们还没收录的好店？",
+    "body": "帮助社区发现隐藏宝藏。添加一家咖啡店只需几分钟。",
+    "button": "添加咖啡店"
+  },
+  "empty": {
+    "heading": "未找到咖啡店",
+    "body": "尝试调整搜索词或筛选条件，找到你想要的结果。",
+    "retry": "清除筛选"
+  },
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "indicator": "第 {{page}} 页，共 {{total}} 页"
+  },
+  "card": {
+    "reviews": "条评论",
+    "openNow": "营业中",
+    "closed": "已打烊",
+    "openDaily": "每日营业"
+  }
+}

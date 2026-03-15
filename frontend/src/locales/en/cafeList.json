@@ -1,0 +1,59 @@
+{
+  "header": {
+    "title": "Discover Coffee Shops",
+    "subtitle": "Find your perfect café — search by name, filter by vibe, or explore what's nearby."
+  },
+  "search": {
+    "namePlaceholder": "Search cafés…",
+    "cityPlaceholder": "City or area…"
+  },
+  "filters": {
+    "title": "Filters",
+    "rating": "Rating",
+    "price": "Price",
+    "amenities": "Amenities",
+    "vibe": "Vibe",
+    "sortBy": "Sort by",
+    "clearAll": "Clear all",
+    "sortOptions": {
+      "highestRated": "Highest Rated",
+      "newestFirst": "Newest First",
+      "mostReviewed": "Most Reviewed",
+      "priceLowHigh": "Price: Low to High",
+      "nameAZ": "Name: A–Z"
+    },
+    "priceLabels": {
+      "budget": "¥ Budget",
+      "moderate": "¥¥ Moderate",
+      "upscale": "¥¥¥ Upscale",
+      "luxury": "¥¥¥¥ Luxury"
+    }
+  },
+  "toolbar": {
+    "results_one": "{{count}} café found",
+    "results_other": "{{count}} cafés found",
+    "grid": "Grid",
+    "list": "List"
+  },
+  "banner": {
+    "heading": "Know a great café we're missing?",
+    "body": "Help the community discover hidden gems. Adding a café takes just a few minutes.",
+    "button": "Add a Café"
+  },
+  "empty": {
+    "heading": "No cafés found",
+    "body": "Try adjusting your search or filters to find what you're looking for.",
+    "retry": "Clear filters"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "indicator": "Page {{page}} of {{total}}"
+  },
+  "card": {
+    "reviews": "reviews",
+    "openNow": "Open now",
+    "closed": "Closed",
+    "openDaily": "Open Daily"
+  }
+}

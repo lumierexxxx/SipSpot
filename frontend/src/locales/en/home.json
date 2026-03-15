@@ -1,0 +1,109 @@
+{
+  "hero": {
+    "tagline": "Your Next Favourite Coffee Shop Awaits",
+    "subtitle": "Discover the best cafés for working, chilling, or that perfect cup — curated by coffee lovers like you.",
+    "searchName": "Coffee shop name…",
+    "searchCity": "City or neighbourhood…",
+    "searchButton": "Search"
+  },
+  "aiSearch": {
+    "placeholder": "Try \"quiet café with good espresso\" or \"dog-friendly with outdoor seating\"…",
+    "button": "AI Search",
+    "tags": {
+      "specialtyCoffee": "Specialty Coffee",
+      "quietStudySpot": "Quiet Study Spot",
+      "dogFriendly": "Dog Friendly",
+      "outdoorSeating": "Outdoor Seating",
+      "coldBrew": "Cold Brew"
+    }
+  },
+  "stats": [
+    { "label": "Coffee Shops" },
+    { "label": "Reviews" },
+    { "label": "Cities" }
+  ],
+  "featured": {
+    "label": "Handpicked for You",
+    "labelPersonalized": "Picked for You",
+    "title": "Featured Coffee Shops",
+    "titlePersonalized": "Your Personalized Picks",
+    "personalizedBadge": "Personalized",
+    "viewAll": "View all shops →",
+    "empty": "No cafés found in this category yet.",
+    "emptyAction": "View all cafés",
+    "categories": {
+      "All": "All",
+      "Work-Friendly": "Work-Friendly",
+      "Outdoor": "Outdoor",
+      "Quiet Space": "Quiet Space",
+      "Dog Friendly": "Dog Friendly",
+      "Specialty Coffee": "Specialty Coffee",
+      "New Openings": "New Openings"
+    }
+  },
+  "badge": {
+    "newOpening": "New Opening",
+    "editorsChoice": "Editor's Choice",
+    "verified": "Verified",
+    "topPick": "Top Pick",
+    "featured": "Featured"
+  },
+  "howItWorks": {
+    "heading": "How SipSpot Works",
+    "steps": [
+      {
+        "title": "Search & Filter",
+        "description": "Search by name, neighborhood, or vibe. Filter by amenities, price range, and hours that match your needs."
+      },
+      {
+        "title": "Explore on Map",
+        "description": "View results on an interactive map and find cafés along your route or within walking distance."
+      },
+      {
+        "title": "Read Real Reviews",
+        "description": "Dive into authentic reviews with photos, ratings for coffee quality, ambiance, service, and workspace."
+      },
+      {
+        "title": "Share Your Experience",
+        "description": "Visited a great spot? Leave a review, add photos, and help fellow coffee lovers discover their next favorite."
+      }
+    ]
+  },
+  "vibes": {
+    "heading": "Explore by Vibe",
+    "items": [
+      { "name": "Work & Study", "count": "Laptop-friendly spaces" },
+      { "name": "Outdoor Seating", "count": "Patios & terraces" },
+      { "name": "Quiet Space", "count": "Peaceful & calm" },
+      { "name": "Dog Friendly", "count": "Bring your pup" },
+      { "name": "Specialty Coffee", "count": "Single origins & more" },
+      { "name": "Power Outlets", "count": "Stay charged all day" },
+      { "name": "Group Gatherings", "count": "Meet & celebrate" },
+      { "name": "New Openings", "count": "Just opened" }
+    ]
+  },
+  "reviews": {
+    "heading": "Community Reviews",
+    "items": [
+      {
+        "text": "Absolutely the best pour-over I've had in the city. The baristas really take their time explaining each origin — felt like a coffee masterclass. Warm, quiet, and perfect for a working morning.",
+        "tags": ["Pour Over", "Quiet", "Great Staff"]
+      },
+      {
+        "text": "Incredible espresso bar. They roast in-house and you can watch the whole process. The natural Ethiopian was floral and fruity — completely different from anything I've tasted. A must-visit.",
+        "tags": ["Espresso", "In-house Roasting", "Specialty"]
+      },
+      {
+        "text": "Perfect morning spot. The outdoor patio is beautiful and dog-friendly. Their oat milk cortado is exceptional — smooth and perfectly balanced. Can get busy on weekends but worth the wait.",
+        "tags": ["Outdoor Seating", "Dog Friendly", "Cortado"]
+      }
+    ]
+  },
+  "newsletter": {
+    "heading": "Stay in the Loop",
+    "body": "Get weekly picks of the best new cafés, seasonal specials, and exclusive community reviews — straight to your inbox.",
+    "placeholder": "Your email address",
+    "button": "Subscribe",
+    "success": "You're in! Check your inbox for a welcome from SipSpot."
+  }
+}

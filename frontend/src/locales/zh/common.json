@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "discover": "探索",
+    "topRated": "高分推荐",
+    "nearMe": "附近咖啡店",
+    "aiSearch": "AI 搜索",
+    "addCafe": "添加咖啡店"
+  },
+  "auth": {
+    "signIn": "登录",
+    "joinFree": "免费注册",
+    "signOut": "退出登录",
+    "profile": "个人主页",
+    "myCafes": "我的咖啡店",
+    "myFavorites": "我的收藏",
+    "myReviews": "我的评论"
+  },
+  "footer": {
+    "tagline": "最值得信赖的咖啡店发现与评价平台。",
+    "madeWith": "用",
+    "madeWithSuffix": "为全球咖啡爱好者打造",
+    "copyright": "© 2026 SipSpot, Inc. 版权所有。",
+    "sections": {
+      "discover": "探索",
+      "community": "社区",
+      "company": "关于我们",
+      "support": "帮助支持"
+    },
+    "links": {
+      "topRated": "高分推荐",
+      "newOpenings": "新开业",
+      "nearMe": "附近",
+      "aiSearch": "AI 搜索",
+      "allCafes": "全部咖啡店",
+      "writeReview": "写评论",
+      "addCafe": "添加咖啡店",
+      "awards": "SipSpot 大奖",
+      "events": "咖啡活动",
+      "ambassador": "品牌大使计划",
+      "about": "关于我们",
+      "press": "媒体报道",
+      "careers": "加入我们",
+      "partnerships": "商务合作",
+      "contact": "联系我们",
+      "helpCenter": "帮助中心",
+      "privacy": "隐私政策",
+      "terms": "使用条款",
+      "cookies": "Cookie 设置"
+    }
+  },
+  "shared": {
+    "viewAll": "查看全部",
+    "loadMore": "加载更多",
+    "back": "返回",
+    "search": "搜索",
+    "filter": "筛选",
+    "clear": "清除",
+    "cancel": "取消",
+    "submit": "提交"
+  }
+}

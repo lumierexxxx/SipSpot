@@ -1,0 +1,109 @@
+{
+  "hero": {
+    "tagline": "发现你的下一家心仪咖啡店",
+    "subtitle": "为工作、休闲或一杯好咖啡而生 — 由咖啡爱好者精心策划。",
+    "searchName": "咖啡店名称…",
+    "searchCity": "城市或街区…",
+    "searchButton": "搜索"
+  },
+  "aiSearch": {
+    "placeholder": "试试「安静的精品咖啡店」或「宠物友好且有户外座位」…",
+    "button": "AI 搜索",
+    "tags": {
+      "specialtyCoffee": "精品咖啡",
+      "quietStudySpot": "安静学习",
+      "dogFriendly": "宠物友好",
+      "outdoorSeating": "户外座位",
+      "coldBrew": "冷萃咖啡"
+    }
+  },
+  "stats": [
+    { "label": "家咖啡店" },
+    { "label": "条评论" },
+    { "label": "座城市" }
+  ],
+  "featured": {
+    "label": "为你精选",
+    "labelPersonalized": "为你推荐",
+    "title": "精选咖啡店",
+    "titlePersonalized": "个性化推荐",
+    "personalizedBadge": "个性化",
+    "viewAll": "查看全部 →",
+    "empty": "该分类暂无咖啡店。",
+    "emptyAction": "查看全部咖啡店",
+    "categories": {
+      "All": "全部",
+      "Work-Friendly": "适合办公",
+      "Outdoor": "户外",
+      "Quiet Space": "安静空间",
+      "Dog Friendly": "宠物友好",
+      "Specialty Coffee": "精品咖啡",
+      "New Openings": "新开业"
+    }
+  },
+  "badge": {
+    "newOpening": "新开业",
+    "editorsChoice": "编辑之选",
+    "verified": "已认证",
+    "topPick": "精选推荐",
+    "featured": "推荐"
+  },
+  "howItWorks": {
+    "heading": "SipSpot 如何使用",
+    "steps": [
+      {
+        "title": "搜索与筛选",
+        "description": "按名称、地区或氛围搜索，并按设施、价格范围和营业时间进行筛选。"
+      },
+      {
+        "title": "地图探索",
+        "description": "在交互地图上查看结果，找到沿途或步行可达的咖啡店。"
+      },
+      {
+        "title": "阅读真实评论",
+        "description": "深入了解带图片的真实评论，包括咖啡品质、氛围、服务和工作空间评分。"
+      },
+      {
+        "title": "分享你的体验",
+        "description": "去过好地方？写评论、上传照片，帮助咖啡爱好者们发现下一个心仪之地。"
+      }
+    ]
+  },
+  "vibes": {
+    "heading": "按氛围探索",
+    "items": [
+      { "name": "工作学习", "count": "笔记本电脑友好空间" },
+      { "name": "户外座位", "count": "露台与庭院" },
+      { "name": "安静空间", "count": "静谧舒适" },
+      { "name": "宠物友好", "count": "带上你的爱宠" },
+      { "name": "精品咖啡", "count": "单品与特调" },
+      { "name": "充电插座", "count": "全天保持满电" },
+      { "name": "团体聚会", "count": "聚会与庆典" },
+      { "name": "新开业", "count": "刚刚开门" }
+    ]
+  },
+  "reviews": {
+    "heading": "社区评论",
+    "items": [
+      {
+        "text": "城里喝过最好的手冲咖啡。咖啡师会耐心介绍每款豆子的产地，像是一堂咖啡大师课。温暖、安静，非常适合工作。",
+        "tags": ["手冲咖啡", "安静", "服务出色"]
+      },
+      {
+        "text": "难以置信的浓缩咖啡吧。他们现场烘焙，你可以全程观看。埃塞俄比亚天然处理豆带着花香和果味，与我喝过的任何咖啡都截然不同，必去。",
+        "tags": ["浓缩咖啡", "现场烘焙", "精品"]
+      },
+      {
+        "text": "完美的晨间好去处。户外露台美丽且宠物友好，燕麦奶卡达酒顺滑均衡，令人惊艳。周末可能较忙，但绝对值得等待。",
+        "tags": ["户外座位", "宠物友好", "卡达酒"]
+      }
+    ]
+  },
+  "newsletter": {
+    "heading": "掌握最新动态",
+    "body": "每周精选最佳新咖啡店、季节特饮和独家社区评论，直达你的邮箱。",
+    "placeholder": "你的邮箱地址",
+    "button": "订阅",
+    "success": "订阅成功！请查收来自 SipSpot 的欢迎邮件。"
+  }
+}

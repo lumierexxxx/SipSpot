@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "discover": "Discover",
+    "topRated": "Top Rated",
+    "nearMe": "Near Me",
+    "aiSearch": "AI Search",
+    "addCafe": "Add a Café"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "joinFree": "Join Free",
+    "signOut": "Sign Out",
+    "profile": "Profile",
+    "myCafes": "My Cafes",
+    "myFavorites": "My Favorites",
+    "myReviews": "My Reviews"
+  },
+  "footer": {
+    "tagline": "The most trusted coffee shop discovery and review platform.",
+    "madeWith": "Made with",
+    "madeWithSuffix": "for coffee lovers everywhere",
+    "copyright": "© 2026 SipSpot, Inc. All rights reserved.",
+    "sections": {
+      "discover": "Discover",
+      "community": "Community",
+      "company": "Company",
+      "support": "Support"
+    },
+    "links": {
+      "topRated": "Top Rated",
+      "newOpenings": "New Openings",
+      "nearMe": "Near Me",
+      "aiSearch": "AI Search",
+      "allCafes": "All Cafés",
+      "writeReview": "Write a Review",
+      "addCafe": "Add a Café",
+      "awards": "SipSpot Awards",
+      "events": "Coffee Events",
+      "ambassador": "Ambassador Program",
+      "about": "About Us",
+      "press": "Press",
+      "careers": "Careers",
+      "partnerships": "Partnerships",
+      "contact": "Contact",
+      "helpCenter": "Help Center",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Use",
+      "cookies": "Cookie Settings"
+    }
+  },
+  "shared": {
+    "viewAll": "View all",
+    "loadMore": "Load more",
+    "back": "Back",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "submit": "Submit"
+  }
+}
