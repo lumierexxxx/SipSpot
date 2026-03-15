@@ -2,10 +2,13 @@
 // SipSpot — ReviewCard (curated, Home page)
 // ============================================
 import { ThumbsUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@components/ui/avatar';
 import StarRating from './StarRating';
 
-export default function ReviewCard({ review }) {
+export default function ReviewCard({ review, index = 0 }) {
+    const { t } = useTranslation('home');
+
     return (
         <div className="bg-white rounded-2xl p-6 border border-stone-100 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4">
             {review.image && (
@@ -21,10 +24,10 @@ export default function ReviewCard({ review }) {
                 <span className="text-stone-400" style={{ fontSize: '0.75rem' }}>{review.date}</span>
             </div>
             <p className="text-stone-600" style={{ fontSize: '0.88rem', lineHeight: 1.65 }}>
-                "{review.text}"
+                "{t('reviews.items.' + index + '.text')}"
             </p>
             <div className="flex flex-wrap gap-1.5">
-                {review.tags.map(tag => (
+                {(t('reviews.items.' + index + '.tags', { returnObjects: true }) || []).map(tag => (
                     <span
                         key={tag}
                         className="bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2.5 py-0.5"
