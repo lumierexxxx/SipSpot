@@ -84,7 +84,7 @@ export default function CafeFilterPanel({ filters, onFilterChange, onAmenityTogg
             </FilterSection>
 
             {/* City */}
-            <FilterSection title="City">
+            <FilterSection title={t('filters.city')}>
                 <div className="flex flex-col gap-1 pt-1">
                     <button
                         onClick={() => onFilterChange('city', '')}

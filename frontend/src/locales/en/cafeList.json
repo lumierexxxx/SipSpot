@@ -17,6 +17,7 @@
     "vibe": "Vibe",
     "sortBy": "Sort by",
     "clearAll": "Clear all",
+    "city": "City",
     "sortOptions": {
       "highestRated": "Highest Rated",
       "newestFirst": "Newest First",
