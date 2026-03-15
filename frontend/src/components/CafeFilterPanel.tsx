@@ -108,19 +108,19 @@ export default function CafeFilterPanel({ filters, onFilterChange, onAmenityTogg
 
             {/* Price Range */}
             <FilterSection title={t('filters.price')}>
-                <div className="flex gap-2 pt-2">
-                    {[1, 2, 3, 4].map(price => (
+                <div className="flex flex-col gap-1 pt-2">
+                    {(['budget', 'moderate', 'upscale', 'luxury'] as const).map((key, i) => (
                         <button
-                            key={price}
-                            onClick={() => onFilterChange('maxPrice', filters.maxPrice === String(price) ? '' : String(price))}
-                            className={`flex-1 py-2 rounded-xl border transition-all ${
-                                filters.maxPrice === String(price)
-                                    ? 'bg-amber-700 border-amber-700 text-white'
-                                    : 'border-stone-200 text-stone-600 hover:border-amber-300'
+                            key={key}
+                            onClick={() => onFilterChange('maxPrice', filters.maxPrice === String(i + 1) ? '' : String(i + 1))}
+                            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+                                filters.maxPrice === String(i + 1)
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'text-stone-600 hover:bg-stone-50'
                             }`}
-                            style={{ fontSize: '0.85rem', fontWeight: 600 }}
+                            style={{ fontSize: '0.83rem' }}
                         >
-                            {'$'.repeat(price)}
+                            {t(`filters.priceLabels.${key}`)}
                         </button>
                     ))}
                 </div>
