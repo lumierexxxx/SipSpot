@@ -2,6 +2,7 @@
 // SipSpot — CafeSearchBar
 // ============================================
 import { Search, X, Filter } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     value: string;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function CafeSearchBar({ value, onChange, onClear, onSubmit, onOpenFilters, activeFilterCount }: Props) {
+    const { t } = useTranslation('cafeList');
     return (
         <div className="mt-6 flex gap-3">
             <form onSubmit={onSubmit} className="flex-1 relative">
@@ -21,7 +23,7 @@ export default function CafeSearchBar({ value, onChange, onClear, onSubmit, onOp
                     type="text"
                     value={value}
                     onChange={e => onChange(e.target.value)}
-                    placeholder="Search by name, neighborhood, or description..."
+                    placeholder={t('search.namePlaceholder')}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-11 pr-10 py-3 text-stone-800 placeholder:text-stone-400 outline-none focus:border-amber-400 focus:bg-white transition-all"
                     style={{ fontSize: '0.9rem' }}
                 />

@@ -2,6 +2,7 @@
 // SipSpot — CafeListHeader
 // ============================================
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     myOnly: boolean;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function CafeListHeader({ myOnly, totalCount, isLoggedIn, onAddCafe }: Props) {
+    const { t } = useTranslation('cafeList');
     return (
         <div className="bg-white border-b border-stone-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -20,12 +22,12 @@ export default function CafeListHeader({ myOnly, totalCount, isLoggedIn, onAddCa
                             Explore Cafés
                         </p>
                         <h1 className="text-stone-900" style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-                            {myOnly ? 'My Cafés' : 'Discover Coffee Shops'}
+                            {myOnly ? 'My Cafés' : t('header.title')}
                         </h1>
                         <p className="text-stone-500 mt-1" style={{ fontSize: '0.9rem' }}>
                             {myOnly
                                 ? 'Manage the cafés you have added'
-                                : `${totalCount.toLocaleString()} cafés waiting to be explored`}
+                                : t('header.subtitle')}
                         </p>
                     </div>
 
