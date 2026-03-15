@@ -9,6 +9,7 @@ import { getCafeBadge, getCafeTags, getCafeHours, getCafeImage, getCafeAmenityIc
 
 export default function ShopCard({ cafe, index }) {
     const { t } = useTranslation('home');
+    const { t: tList } = useTranslation('cafeList');
     const [liked, setLiked] = useState(false);
     const badge = getCafeBadge(cafe);
     const tags = getCafeTags(cafe);
@@ -87,7 +88,7 @@ export default function ShopCard({ cafe, index }) {
                 <div className="flex items-center justify-between pt-3 border-t border-stone-100">
                     <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5 text-stone-400" />
-                        <span className="text-stone-500" style={{ fontSize: '0.78rem' }}>{hours}</span>
+                        <span className="text-stone-500" style={{ fontSize: '0.78rem' }}>{hours === 'Open Daily' ? tList('card.openDaily') : hours}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         {amenityIcons.includes('wifi') && <Wifi className="w-3.5 h-3.5 text-stone-400" />}
