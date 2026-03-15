@@ -1,9 +1,12 @@
 // ============================================
 // SipSpot — HowItWorksSection
 // ============================================
+import { useTranslation } from 'react-i18next';
 import { HOW_IT_WORKS_STEPS } from '@utils/homeData';
 
 export default function HowItWorksSection() {
+    const { t } = useTranslation('home');
+
     return (
         <section className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -12,7 +15,7 @@ export default function HowItWorksSection() {
                         Simple as Your Morning Brew
                     </p>
                     <h2 className="text-stone-900" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 700, lineHeight: 1.2 }}>
-                        How SipSpot Works
+                        {t('howItWorks.heading')}
                     </h2>
                 </div>
 
@@ -32,8 +35,8 @@ export default function HowItWorksSection() {
                                 <span className="text-stone-300 mb-2" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em' }}>
                                     STEP {step.step}
                                 </span>
-                                <h3 className="text-stone-900 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>{step.title}</h3>
-                                <p className="text-stone-500" style={{ fontSize: '0.88rem', lineHeight: 1.6 }}>{step.description}</p>
+                                <h3 className="text-stone-900 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>{t('howItWorks.steps.' + i + '.title')}</h3>
+                                <p className="text-stone-500" style={{ fontSize: '0.88rem', lineHeight: 1.6 }}>{t('howItWorks.steps.' + i + '.description')}</p>
                             </div>
                         </div>
                     ))}
