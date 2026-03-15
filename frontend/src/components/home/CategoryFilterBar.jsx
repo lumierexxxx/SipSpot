@@ -2,7 +2,7 @@
 // SipSpot — CategoryFilterBar
 // ============================================
 
-export default function CategoryFilterBar({ categories, active, onChange }) {
+export default function CategoryFilterBar({ categories, active, onChange, getLabel }) {
     return (
         <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
             {categories.map(cat => (
@@ -16,7 +16,7 @@ export default function CategoryFilterBar({ categories, active, onChange }) {
                     }`}
                     style={{ fontSize: '0.85rem' }}
                 >
-                    {cat}
+                    {getLabel ? getLabel(cat) : cat}
                 </button>
             ))}
         </div>
