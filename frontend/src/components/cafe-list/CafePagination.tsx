@@ -1,6 +1,8 @@
 // ============================================
 // SipSpot — CafePagination
 // ============================================
+import { useTranslation } from 'react-i18next';
+
 interface Props {
     currentPage: number;
     totalPages: number;
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export default function CafePagination({ currentPage, totalPages, onChange }: Props) {
+    const { t } = useTranslation('cafeList');
+
     if (totalPages <= 1) return null;
 
     return (
@@ -19,7 +23,7 @@ export default function CafePagination({ currentPage, totalPages, onChange }: Pr
                     className="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 bg-white hover:border-amber-300 hover:text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     style={{ fontSize: '0.85rem' }}
                 >
-                    Previous
+                    {t('pagination.previous')}
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                     if (page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)) {
@@ -45,8 +49,11 @@ export default function CafePagination({ currentPage, totalPages, onChange }: Pr
                     className="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 bg-white hover:border-amber-300 hover:text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     style={{ fontSize: '0.85rem' }}
                 >
-                    Next
+                    {t('pagination.next')}
                 </button>
+                <span className="px-3 text-stone-500" style={{ fontSize: '0.85rem' }}>
+                    {t('pagination.indicator', { page: currentPage, total: totalPages })}
+                </span>
             </nav>
         </div>
     );

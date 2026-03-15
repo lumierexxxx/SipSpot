@@ -1,6 +1,7 @@
 // ============================================
 // SipSpot — SortSelect (Radix Select)
 // ============================================
+import { useTranslation } from 'react-i18next';
 import {
     Select,
     SelectContent,
@@ -11,7 +12,7 @@ import {
 
 interface Option {
     value: string;
-    label: string;
+    labelKey: string;
 }
 
 interface Props {
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export default function SortSelect({ value, onChange, options }: Props) {
+    const { t } = useTranslation('cafeList');
+
     return (
         <Select value={value} onValueChange={onChange}>
             <SelectTrigger className="border border-stone-200 bg-white text-stone-700 rounded-xl px-3 py-2 w-44" style={{ fontSize: '0.83rem' }}>
@@ -29,7 +32,7 @@ export default function SortSelect({ value, onChange, options }: Props) {
             <SelectContent>
                 {options.map(opt => (
                     <SelectItem key={opt.value} value={opt.value} style={{ fontSize: '0.83rem' }}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                     </SelectItem>
                 ))}
             </SelectContent>
