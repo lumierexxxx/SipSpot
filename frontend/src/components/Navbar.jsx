@@ -1,406 +1,252 @@
 // ============================================
 // SipSpot Frontend - Navbar Component
-// 顶部导航栏组件（纯 Tailwind CSS）
 // ============================================
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Coffee, Menu, X, ChevronDown, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@contexts/AuthContext';
 
-/**
- * Navbar 组件
- */
 const Navbar = () => {
     const { user, isLoggedIn, logout } = useAuth();
-    
-    // 状态
+    const { t } = useTranslation('common');
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [isScrolled, setIsScrolled] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    
-    // Refs
+
     const userMenuRef = useRef(null);
-    const mobileMenuRef = useRef(null);
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    // ============================================
-    // 滚动效果
-    // ============================================
+    const isActive = (href) => location.pathname === href || location.pathname + location.search === href;
+
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    // ============================================
-    // 点击外部关闭菜单
-    // ============================================
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        const handleClickOutside = (e) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
                 setIsUserMenuOpen(false);
             }
-            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
-                setIsMobileMenuOpen(false);
-            }
         };
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // ============================================
-    // 搜索处理
-    // ============================================
     const handleSearch = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            window.location.href = `/cafes?search=${encodeURIComponent(searchQuery.trim())}`;
+            navigate(`/cafes?search=${encodeURIComponent(searchQuery.trim())}`);
         }
     };
 
-    // ============================================
-    // 登出处理
-    // ============================================
     const handleLogout = async () => {
         await logout();
         setIsUserMenuOpen(false);
         window.location.href = '/';
     };
 
-    // ============================================
-    // 导航链接数据
-    // ============================================
     const navLinks = [
-        { name: '首页', href: '/', icon: '🏠' },
-        { name: '咖啡店', href: '/cafes', icon: '☕' },
-        { name: '附近', href: '/nearby', icon: '📍' },
-        { name: '探索', href: '/explore', icon: '🔍' }
+        { tKey: 'nav.discover', href: '/cafes' },
+        { tKey: 'nav.topRated', href: '/cafes?sort=-rating' },
+        { tKey: 'nav.nearMe', href: '/nearby' },
+        { tKey: 'nav.aiSearch', href: '/ai-search' },
     ];
 
+    const handleAddCafe = () => {
+        if (isLoggedIn) {
+            navigate('/cafes/new');
+            setIsMobileMenuOpen(false);
+        } else {
+            setShowLoginPrompt(true);
+            setTimeout(() => setShowLoginPrompt(false), 3000);
+        }
+    };
+
     return (
-        <nav
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                isScrolled
-                    ? 'bg-white shadow-md'
-                    : 'bg-white/95 backdrop-blur-sm'
-            }`}
-        >
+        <>
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-stone-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    
-                    {/* ============================================ */}
-                    {/* Logo 和品牌名 */}
-                    {/* ============================================ */}
-                    <div className="flex items-center shrink-0">
-                        <a href="/" className="flex items-center space-x-2">
-                            <div className="w-10 h-10 bg-linear-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
-                                <span className="text-2xl">☕</span>
-                            </div>
-                            <span className="text-xl font-bold text-gray-900 hidden sm:block">
-                                SipSpot
-                            </span>
-                        </a>
-                    </div>
 
-                    {/* ============================================ */}
-                    {/* 桌面端导航链接 */}
-                    {/* ============================================ */}
-                    <div className="hidden md:flex items-center space-x-1">
+                    {/* Logo */}
+                    <Link to="/" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-amber-700 rounded-lg flex items-center justify-center">
+                            <Coffee className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-stone-900" style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                            SipSpot
+                        </span>
+                    </Link>
+
+                    {/* Desktop Nav */}
+                    <div className="hidden md:flex items-center gap-1">
                         {navLinks.map((link) => (
-                            <a
-                                key={link.name}
-                                href={link.href}
-                                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                            <Link
+                                key={link.href}
+                                to={link.href}
+                                className={`px-4 py-2 rounded-lg transition-colors ${isActive(link.href) ? 'text-amber-700 bg-amber-50' : 'text-stone-600 hover:text-amber-700 hover:bg-stone-50'}`}
+                                style={{ fontSize: '0.9rem' }}
                             >
-                                <span className="mr-1">{link.icon}</span>
-                                {link.name}
-                            </a>
+                                {t(link.tKey)}
+                            </Link>
                         ))}
                     </div>
 
-                    {/* ============================================ */}
-                    {/* 搜索框（桌面端） */}
-                    {/* ============================================ */}
-                    <div className="hidden lg:flex flex-1 max-w-md mx-8">
-                        <form onSubmit={handleSearch} className="w-full">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="搜索咖啡店..."
-                                    className="w-full px-4 py-2 pl-10 pr-4 text-sm text-gray-900 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
-                                />
-                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                    <svg
-                                        className="w-5 h-5 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+                    {/* Auth */}
+                    <div className="hidden md:flex items-center gap-3">
+                        {/* Add a Café */}
+                        <button
+                            onClick={handleAddCafe}
+                            className="flex items-center gap-1.5 border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-full transition-colors"
+                            style={{ fontSize: '0.85rem', fontWeight: 500 }}
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            {t('nav.addCafe')}
+                        </button>
 
-                    {/* ============================================ */}
-                    {/* 右侧按钮组 */}
-                    {/* ============================================ */}
-                    <div className="flex items-center space-x-4">
-                        
-                        {/* 添加咖啡店按钮 */}
-                        {isLoggedIn && (
-                            <a
-                                href="/cafes/new"
-                                className="hidden md:flex items-center px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
-                            >
-                                <svg
-                                    className="w-5 h-5 mr-1"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 4v16m8-8H4"
-                                    />
-                                </svg>
-                                添加咖啡店
-                            </a>
-                        )}
-
-                        {/* 用户菜单或登录按钮 */}
                         {isLoggedIn ? (
                             <div className="relative" ref={userMenuRef}>
                                 <button
                                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                    className="flex items-center space-x-2 focus:outline-none"
+                                    className="flex items-center gap-2.5 border border-stone-200 rounded-full pr-4 pl-1 py-1 hover:border-amber-300 transition-colors"
+                                    aria-expanded={isUserMenuOpen}
                                 >
-                                    <img
-                                        src={user?.avatar || 'https://via.placeholder.com/40'}
-                                        alt={user?.username}
-                                        className="w-10 h-10 rounded-full border-2 border-gray-200 hover:border-amber-500 transition-colors"
-                                    />
-                                    <svg
-                                        className={`hidden md:block w-4 h-4 text-gray-600 transition-transform ${
-                                            isUserMenuOpen ? 'rotate-180' : ''
-                                        }`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 9l-7 7-7-7"
-                                        />
-                                    </svg>
+                                    <div className="w-7 h-7 bg-amber-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        {user?.avatar ? (
+                                            <img src={user.avatar} alt={user?.username} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-amber-700" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                                                {user?.username?.[0]?.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-stone-700" style={{ fontSize: '0.85rem' }}>{user?.username}</span>
+                                    <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {/* 用户下拉菜单 */}
                                 {isUserMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-1 border border-gray-200">
-                                        <div className="px-4 py-3 border-b border-gray-100">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {user?.username}
-                                            </p>
-                                            <p className="text-sm text-gray-500 truncate">
-                                                {user?.email}
-                                            </p>
+                                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-stone-200 shadow-lg overflow-hidden">
+                                        <div className="px-4 py-3 border-b border-stone-100">
+                                            <p className="text-stone-900" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{user?.username}</p>
+                                            <p className="text-stone-400 truncate" style={{ fontSize: '0.75rem' }}>{user?.email}</p>
                                         </div>
-                                        
-                                        <a
-                                            href="/profile"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            👤 个人资料
-                                        </a>
-                                        
-                                        <a
-                                            href="/my-cafes"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            ☕ 我的咖啡店
-                                        </a>
-                                        
-                                        <a
-                                            href="/favorites"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            ⭐ 我的收藏
-                                        </a>
-                                        
-                                        <a
-                                            href="/my-reviews"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            💬 我的评论
-                                        </a>
-                                        
-                                        {user?.role === 'admin' && (
-                                            <a
-                                                href="/admin"
-                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                                        {[
+                                            { tKey: 'auth.profile', href: '/profile' },
+                                            { tKey: 'auth.myCafes', href: '/my-cafes' },
+                                            { tKey: 'auth.myFavorites', href: '/favorites' },
+                                            { tKey: 'auth.myReviews', href: '/my-reviews' },
+                                        ].map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                to={item.href}
+                                                onClick={() => setIsUserMenuOpen(false)}
+                                                className="block px-4 py-2.5 text-stone-700 hover:bg-stone-50 hover:text-amber-700 transition-colors"
+                                                style={{ fontSize: '0.85rem' }}
                                             >
-                                                🛡️ 管理面板
-                                            </a>
+                                                {t(item.tKey)}
+                                            </Link>
+                                        ))}
+                                        {user?.role === 'admin' && (
+                                            <Link
+                                                to="/admin"
+                                                onClick={() => setIsUserMenuOpen(false)}
+                                                className="block px-4 py-2.5 text-stone-700 hover:bg-stone-50 transition-colors border-t border-stone-100"
+                                                style={{ fontSize: '0.85rem' }}
+                                            >
+                                                Admin Panel
+                                            </Link>
                                         )}
-                                        
                                         <button
                                             onClick={handleLogout}
-                                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100"
+                                            className="block w-full text-left px-4 py-2.5 text-rose-600 hover:bg-rose-50 transition-colors border-t border-stone-100"
+                                            style={{ fontSize: '0.85rem' }}
                                         >
-                                            🚪 登出
+                                            {t('auth.signOut')}
                                         </button>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="hidden md:flex items-center space-x-2">
-                                <a
-                                    href="/login"
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-amber-600 transition-colors"
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="text-stone-700 hover:text-amber-700 transition-colors px-4 py-2 rounded-lg"
+                                    style={{ fontSize: '0.9rem' }}
                                 >
-                                    登录
-                                </a>
-                                <a
-                                    href="/register"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
+                                    {t('auth.signIn')}
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="bg-amber-700 hover:bg-amber-800 text-white px-5 py-2 rounded-full transition-colors"
+                                    style={{ fontSize: '0.9rem' }}
                                 >
-                                    注册
-                                </a>
-                            </div>
+                                    {t('auth.joinFree')}
+                                </Link>
+                            </>
                         )}
+                    </div>
 
-                        {/* 移动端菜单按钮 */}
-                        <button
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none"
+                    {/* Mobile toggle */}
+                    <button
+                        className="md:hidden p-2 rounded-lg text-stone-600 hover:bg-stone-100"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-white border-t border-stone-200 px-4 py-4 flex flex-col gap-1">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.href}
+                            to={link.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={`px-3 py-2.5 rounded-xl ${isActive(link.href) ? 'text-amber-700 bg-amber-50' : 'text-stone-700 hover:bg-stone-50'}`}
+                            style={{ fontSize: '0.9rem' }}
                         >
-                            <svg
-                                className="w-6 h-6"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                {isMobileMenuOpen ? (
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                ) : (
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                )}
-                            </svg>
-                        </button>
+                            {t(link.tKey)}
+                        </Link>
+                    ))}
+                    <button
+                        onClick={handleAddCafe}
+                        className="flex items-center justify-center gap-2 mt-2 border border-amber-200 bg-amber-50 text-amber-700 py-2.5 rounded-xl"
+                        style={{ fontSize: '0.9rem' }}
+                    >
+                        <Plus className="w-4 h-4" /> {t('nav.addCafe')}
+                    </button>
+                    <div className="flex gap-3 pt-2 border-t border-stone-100 mt-1">
+                        {isLoggedIn ? (
+                            <div className="flex flex-col gap-2 w-full">
+                                <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="text-stone-700 py-1" style={{ fontSize: '0.9rem' }}>{t('auth.profile')}</Link>
+                                <Link to="/favorites" onClick={() => setIsMobileMenuOpen(false)} className="text-stone-700 py-1" style={{ fontSize: '0.9rem' }}>{t('auth.myFavorites')}</Link>
+                                <button onClick={handleLogout} className="text-left text-rose-600 py-1" style={{ fontSize: '0.9rem' }}>{t('auth.signOut')}</button>
+                            </div>
+                        ) : (
+                            <>
+                                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 border border-stone-300 text-stone-700 py-2.5 rounded-full text-center" style={{ fontSize: '0.88rem' }}>{t('auth.signIn')}</Link>
+                                <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 bg-amber-700 text-white py-2.5 rounded-full text-center" style={{ fontSize: '0.88rem' }}>{t('auth.joinFree')}</Link>
+                            </>
+                        )}
                     </div>
                 </div>
+            )}
 
-                {/* ============================================ */}
-                {/* 移动端菜单 */}
-                {/* ============================================ */}
-                {isMobileMenuOpen && (
-                    <div
-                        ref={mobileMenuRef}
-                        className="md:hidden py-4 border-t border-gray-200"
-                    >
-                        {/* 搜索框（移动端） */}
-                        <div className="mb-4">
-                            <form onSubmit={handleSearch}>
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="搜索咖啡店..."
-                                    className="w-full px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                />
-                            </form>
-                        </div>
-
-                        {/* 导航链接 */}
-                        <div className="space-y-1">
-                            {navLinks.map((link) => (
-                                <a
-                                    key={link.name}
-                                    href={link.href}
-                                    className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-colors"
-                                >
-                                    <span className="mr-2">{link.icon}</span>
-                                    {link.name}
-                                </a>
-                            ))}
-                        </div>
-
-                        {/* 用户操作 */}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                            {isLoggedIn ? (
-                                <>
-                                    <a
-                                        href="/cafes/new"
-                                        className="block px-4 py-2 text-base font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                    >
-                                        ➕ 添加咖啡店
-                                    </a>
-                                    <a
-                                        href="/profile"
-                                        className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                        👤 个人资料
-                                    </a>
-                                    <a
-                                        href="/favorites"
-                                        className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                        ⭐ 我的收藏
-                                    </a>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                        🚪 登出
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <a
-                                        href="/login"
-                                        className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                                    >
-                                        登录
-                                    </a>
-                                    <a
-                                        href="/register"
-                                        className="block px-4 py-2 text-base font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg text-center transition-colors"
-                                    >
-                                        注册
-                                    </a>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
+            {/* Login prompt toast */}
+            {showLoginPrompt && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-stone-900 text-white rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-3 whitespace-nowrap z-50">
+                    <Coffee className="w-4 h-4 text-amber-400" />
+                    <span style={{ fontSize: '0.88rem' }}>Please sign in to add a café</span>
+                </div>
+            )}
         </nav>
+
+        {/* Backdrop for user menu */}
+        {isUserMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />}
+        </>
     );
 };
 
