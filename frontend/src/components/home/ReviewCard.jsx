@@ -27,9 +27,9 @@ export default function ReviewCard({ review, index = 0 }) {
                 "{t('reviews.items.' + index + '.text')}"
             </p>
             <div className="flex flex-wrap gap-1.5">
-                {(t('reviews.items.' + index + '.tags', { returnObjects: true }) || []).map(tag => (
+                {(t('reviews.items.' + index + '.tags', { returnObjects: true }) || []).map((tag, idx) => (
                     <span
-                        key={tag}
+                        key={idx}
                         className="bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2.5 py-0.5"
                         style={{ fontSize: '0.72rem' }}
                     >
