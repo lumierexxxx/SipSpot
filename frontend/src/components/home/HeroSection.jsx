@@ -2,10 +2,13 @@
 // SipSpot — HeroSection
 // ============================================
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1642315160505-b3dff3a3c8b9?w=1080&q=80';
 
 export default function HeroSection({ children }) {
+    const { t } = useTranslation('home');
+
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0">
@@ -23,11 +26,10 @@ export default function HeroSection({ children }) {
                     className="text-white mb-5"
                     style={{ fontSize: 'clamp(2.2rem, 6vw, 4rem)', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}
                 >
-                    Find the Perfect<br />
-                    <span className="text-amber-400">Coffee Shop</span> Near You
+                    {t('hero.tagline')}
                 </h1>
                 <p className="text-stone-300 mb-10 max-w-xl mx-auto" style={{ fontSize: '1.1rem', lineHeight: 1.6 }}>
-                    Explore thousands of cafés, read real reviews, and discover hidden gems in your city and beyond.
+                    {t('hero.subtitle')}
                 </p>
 
                 {children}

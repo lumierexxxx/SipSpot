@@ -2,8 +2,11 @@
 // SipSpot — HeroSearchBar
 // ============================================
 import { Search, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function HeroSearchBar({ query, location, onQueryChange, onLocationChange, onSubmit }) {
+    const { t } = useTranslation('home');
+
     return (
         <form
             onSubmit={onSubmit}
@@ -13,7 +16,7 @@ export default function HeroSearchBar({ query, location, onQueryChange, onLocati
                 <Search className="w-5 h-5 text-stone-400 flex-shrink-0" />
                 <input
                     type="text"
-                    placeholder="Search by name..."
+                    placeholder={t('hero.searchName')}
                     value={query}
                     onChange={onQueryChange}
                     className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent"
@@ -25,7 +28,7 @@ export default function HeroSearchBar({ query, location, onQueryChange, onLocati
                 <MapPin className="w-5 h-5 text-stone-400 flex-shrink-0" />
                 <input
                     type="text"
-                    placeholder="City or neighborhood..."
+                    placeholder={t('hero.searchCity')}
                     value={location}
                     onChange={onLocationChange}
                     className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent"
@@ -37,7 +40,7 @@ export default function HeroSearchBar({ query, location, onQueryChange, onLocati
                 className="bg-amber-700 hover:bg-amber-800 text-white px-7 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 flex-shrink-0"
             >
                 <Search className="w-4 h-4" />
-                <span>Search</span>
+                <span>{t('hero.searchButton')}</span>
             </button>
         </form>
     );
