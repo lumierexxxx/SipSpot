@@ -3,9 +3,9 @@
 // ============================================
 
 export const SORT_OPTIONS = [
-    { value: '-rating',    label: 'Highest Rated' },
-    { value: '-createdAt', label: 'Newest First' },
-    { value: 'price',      label: 'Price: Low to High' },
-    { value: '-price',     label: 'Price: High to Low' },
-    { value: 'name',       label: 'Name A – Z' },
+    { value: '-rating',       labelKey: 'filters.sortOptions.highestRated' },
+    { value: '-createdAt',    labelKey: 'filters.sortOptions.newestFirst' },
+    { value: '-reviewCount',  labelKey: 'filters.sortOptions.mostReviewed' },
+    { value: 'price',         labelKey: 'filters.sortOptions.priceLowHigh' },
+    { value: 'name',          labelKey: 'filters.sortOptions.nameAZ' },
 ] as const;
