@@ -1,7 +1,9 @@
 {
   "header": {
+    "eyebrow": "探索咖啡店",
     "title": "发现咖啡店",
-    "subtitle": "找到你的完美咖啡店 — 按名称搜索、按氛围筛选，或探索附近好店。"
+    "subtitle": "找到你的完美咖啡店 — 按名称搜索、按氛围筛选，或探索附近好店。",
+    "loginHint": "请登录后添加咖啡店"
   },
   "search": {
     "namePlaceholder": "搜索咖啡店…",

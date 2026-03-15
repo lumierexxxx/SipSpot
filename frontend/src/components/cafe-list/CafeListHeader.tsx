@@ -19,7 +19,7 @@ export default function CafeListHeader({ myOnly, totalCount, isLoggedIn, onAddCa
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
                     <div>
                         <p className="text-amber-700 mb-1" style={{ fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                            Explore Cafés
+                            {t('header.eyebrow')}
                         </p>
                         <h1 className="text-stone-900" style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
                             {myOnly ? 'My Cafés' : t('header.title')}
@@ -41,10 +41,10 @@ export default function CafeListHeader({ myOnly, totalCount, isLoggedIn, onAddCa
                                 <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
                                     <Plus className="w-3.5 h-3.5" />
                                 </div>
-                                Add a Café
+                                {t('banner.button')}
                             </button>
                             {!isLoggedIn && (
-                                <p className="text-stone-400" style={{ fontSize: '0.72rem' }}>Sign in required to add a café</p>
+                                <p className="text-stone-400" style={{ fontSize: '0.72rem' }}>{t('header.loginHint')}</p>
                             )}
                         </div>
                     )}

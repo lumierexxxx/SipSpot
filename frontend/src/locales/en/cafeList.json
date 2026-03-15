@@ -1,7 +1,9 @@
 {
   "header": {
+    "eyebrow": "Explore Cafés",
     "title": "Discover Coffee Shops",
-    "subtitle": "Find your perfect café — search by name, filter by vibe, or explore what's nearby."
+    "subtitle": "Find your perfect café — search by name, filter by vibe, or explore what's nearby.",
+    "loginHint": "Sign in required to add a café"
   },
   "search": {
     "namePlaceholder": "Search cafés…",

@@ -43,7 +43,7 @@ export default function CafeSearchBar({ value, onChange, onClear, onSubmit, onOp
                 style={{ fontSize: '0.88rem' }}
             >
                 <Filter className="w-4 h-4" />
-                Filters
+                {t('filters.title')}
                 {activeFilterCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-700 text-white rounded-full flex items-center justify-center" style={{ fontSize: '0.65rem', fontWeight: 700 }}>
                         {activeFilterCount}
