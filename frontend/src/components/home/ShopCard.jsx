@@ -4,9 +4,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, Clock, Heart, Wifi, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getCafeBadge, getCafeTags, getCafeHours, getCafeImage, getCafeAmenityIcons } from '@utils/homeData';
 
 export default function ShopCard({ cafe, index }) {
+    const { t } = useTranslation('home');
     const [liked, setLiked] = useState(false);
     const badge = getCafeBadge(cafe);
     const tags = getCafeTags(cafe);
@@ -33,7 +35,7 @@ export default function ShopCard({ cafe, index }) {
                     className={`absolute top-3 left-3 ${badge.color} text-white rounded-full px-3 py-1`}
                     style={{ fontSize: '0.72rem', fontWeight: 600 }}
                 >
-                    {badge.label}
+                    {t('badge.' + badge.key)}
                 </div>
                 <button
                     onClick={(e) => { e.preventDefault(); setLiked(!liked); }}
