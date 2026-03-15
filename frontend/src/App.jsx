@@ -5,6 +5,7 @@
 
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from './components/Navbar';
 import LangSelect from './components/LangSelect';
 import { useAuth } from './contexts/AuthContext';
@@ -82,6 +83,7 @@ const GuestRoute = ({ children }) => {
 // 主应用组件
 // ============================================
 function App() {
+    const { t } = useTranslation('common');
     return (
         <Router>
             <div className="min-h-screen bg-white">
@@ -237,7 +239,7 @@ function App() {
                                     <span className="text-white" style={{ fontSize: '1.15rem', fontWeight: 700 }}>SipSpot</span>
                                 </div>
                                 <p style={{ fontSize: '0.85rem', lineHeight: 1.65 }} className="text-stone-500 mb-5">
-                                    The most trusted coffee shop discovery and review platform.
+                                    {t('footer.tagline')}
                                 </p>
                                 <div className="flex gap-3">
                                     {[Instagram, Twitter, Youtube].map((Icon, i) => (
@@ -250,10 +252,22 @@ function App() {
 
                             {/* Link columns */}
                             {Object.entries({
-                                Discover: ['Top Rated', 'New Openings', 'Near Me', 'AI Search', 'All Cafés'],
-                                Community: ['Write a Review', 'Add a Café', 'SipSpot Awards', 'Coffee Events', 'Ambassador Program'],
-                                Company: ['About Us', 'Press', 'Careers', 'Partnerships', 'Contact'],
-                                Support: ['Help Center', 'Privacy Policy', 'Terms of Use', 'Cookie Settings'],
+                                [t('footer.sections.discover')]: [
+                                    t('footer.links.topRated'), t('footer.links.newOpenings'),
+                                    t('footer.links.nearMe'), t('footer.links.aiSearch'), t('footer.links.allCafes')
+                                ],
+                                [t('footer.sections.community')]: [
+                                    t('footer.links.writeReview'), t('footer.links.addCafe'),
+                                    t('footer.links.awards'), t('footer.links.events'), t('footer.links.ambassador')
+                                ],
+                                [t('footer.sections.company')]: [
+                                    t('footer.links.about'), t('footer.links.press'),
+                                    t('footer.links.careers'), t('footer.links.partnerships'), t('footer.links.contact')
+                                ],
+                                [t('footer.sections.support')]: [
+                                    t('footer.links.helpCenter'), t('footer.links.privacy'),
+                                    t('footer.links.terms'), t('footer.links.cookies')
+                                ],
                             }).map(([section, links]) => (
                                 <div key={section}>
                                     <h4 className="text-white mb-4" style={{ fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.04em' }}>{section}</h4>
@@ -269,12 +283,12 @@ function App() {
                         </div>
 
                         <div className="border-t border-stone-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <p style={{ fontSize: '0.8rem' }}>© 2026 SipSpot, Inc. All rights reserved.</p>
+                            <p style={{ fontSize: '0.8rem' }}>{t('footer.copyright')}</p>
                             <LangSelect />
                             <div className="flex items-center gap-1.5" style={{ fontSize: '0.8rem' }}>
-                                <span>Made with</span>
+                                <span>{t('footer.madeWith')}</span>
                                 <span className="text-amber-600">☕</span>
-                                <span>for coffee lovers everywhere</span>
+                                <span>{t('footer.madeWithSuffix')}</span>
                             </div>
                         </div>
                     </div>
