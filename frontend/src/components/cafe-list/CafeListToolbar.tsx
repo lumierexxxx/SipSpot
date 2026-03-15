@@ -28,9 +28,7 @@ export default function CafeListToolbar({
         <div className="flex items-center justify-between mb-5 gap-4">
             <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-stone-500" style={{ fontSize: '0.88rem' }}>
-                    <strong className="text-stone-800">{resultCount}</strong>
-                    {' / '}
-                    {t('toolbar.results', { count: totalCount })}
+                    {t('toolbar.results', { count: resultCount })}
                 </span>
                 <ActiveFilterChips
                     filters={filters}

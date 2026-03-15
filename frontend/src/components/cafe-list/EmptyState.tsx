@@ -21,10 +21,10 @@ export default function EmptyState({ myOnly, hasError, errorMessage, onRetry, on
                 <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <X className="w-7 h-7 text-rose-400" />
                 </div>
-                <h3 className="text-stone-800 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>Failed to load</h3>
+                <h3 className="text-stone-800 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>{t('empty.errorHeading')}</h3>
                 <p className="text-stone-500 mb-5" style={{ fontSize: '0.88rem' }}>{errorMessage}</p>
                 <button onClick={onRetry} className="bg-amber-700 text-white px-5 py-2.5 rounded-full hover:bg-amber-800 transition-colors" style={{ fontSize: '0.88rem' }}>
-                    Retry
+                    {t('empty.errorRetry')}
                 </button>
             </div>
         );

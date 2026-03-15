@@ -45,7 +45,9 @@
   "empty": {
     "heading": "未找到咖啡店",
     "body": "尝试调整搜索词或筛选条件，找到你想要的结果。",
-    "retry": "清除筛选"
+    "retry": "清除筛选",
+    "errorHeading": "加载失败",
+    "errorRetry": "重试"
   },
   "pagination": {
     "previous": "上一页",

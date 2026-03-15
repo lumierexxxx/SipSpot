@@ -45,7 +45,9 @@
   "empty": {
     "heading": "No cafés found",
     "body": "Try adjusting your search or filters to find what you're looking for.",
-    "retry": "Clear filters"
+    "retry": "Clear filters",
+    "errorHeading": "Failed to load",
+    "errorRetry": "Retry"
   },
   "pagination": {
     "previous": "Previous",
