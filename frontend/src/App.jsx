@@ -6,6 +6,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import LangSelect from './components/LangSelect';
 import { useAuth } from './contexts/AuthContext';
 import { Coffee, Instagram, Twitter, Youtube } from 'lucide-react';
 import { Toaster } from '@components/ui/sonner';
@@ -25,6 +26,7 @@ const EditCafePage = lazy(() => import('./pages/EditCafePage'));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 const MyReviewsPage = lazy(() => import('./pages/MyReviewsPage'));
 const AISearchPage = lazy(() => import('./pages/AISearchPage'));
+const SubmitSuccessPage = lazy(() => import('./pages/SubmitSuccessPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
@@ -159,6 +161,9 @@ function App() {
                                 }
                             />
 
+                            {/* 提交成功页面（须在 /cafes/new 之前，避免被 /cafes/:id 匹配） */}
+                            <Route path="/cafes/new/success" element={<SubmitSuccessPage />} />
+
                             {/* 创建咖啡店 */}
                             <Route
                                 path="/cafes/new"
@@ -265,6 +270,7 @@ function App() {
 
                         <div className="border-t border-stone-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <p style={{ fontSize: '0.8rem' }}>© 2026 SipSpot, Inc. All rights reserved.</p>
+                            <LangSelect />
                             <div className="flex items-center gap-1.5" style={{ fontSize: '0.8rem' }}>
                                 <span>Made with</span>
                                 <span className="text-amber-600">☕</span>
