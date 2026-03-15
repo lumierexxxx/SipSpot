@@ -106,7 +106,7 @@ export function getCafeTags(cafe) {
 export function getCafeHours(cafe) {
     const today = DAY_NAMES[new Date().getDay()];
     const entry = cafe.openingHours?.find(h => h.day === today);
-    return entry ? `${entry.open} – ${entry.close}` : 'Open Daily';
+    return entry ? `${entry.open} – ${entry.close}` : null;
 }
 
 export function getCafeImage(cafe, index) {

@@ -88,7 +88,7 @@ export default function ShopCard({ cafe, index }) {
                 <div className="flex items-center justify-between pt-3 border-t border-stone-100">
                     <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5 text-stone-400" />
-                        <span className="text-stone-500" style={{ fontSize: '0.78rem' }}>{hours === 'Open Daily' ? tList('card.openDaily') : hours}</span>
+                        <span className="text-stone-500" style={{ fontSize: '0.78rem' }}>{hours ?? tList('card.openDaily')}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         {amenityIcons.includes('wifi') && <Wifi className="w-3.5 h-3.5 text-stone-400" />}
