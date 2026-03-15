@@ -20,6 +20,6 @@ i18n.use(initReactI18next).init({
     lng: localStorage.getItem('sipspot_lang') || 'en',
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
-});
+}).catch(console.error);
 
 export default i18n;
