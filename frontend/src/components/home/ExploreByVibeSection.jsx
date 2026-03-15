@@ -2,10 +2,12 @@
 // SipSpot — ExploreByVibeSection
 // ============================================
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { VIBES } from '@utils/homeData';
 
 export default function ExploreByVibeSection() {
     const navigate = useNavigate();
+    const { t } = useTranslation('home');
 
     return (
         <section className="py-20 bg-white">
@@ -15,22 +17,22 @@ export default function ExploreByVibeSection() {
                         Find Your Perfect Match
                     </p>
                     <h2 className="text-stone-900" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 700, lineHeight: 1.2 }}>
-                        Explore by Vibe
+                        {t('vibes.heading')}
                     </h2>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {VIBES.map(vibe => (
+                    {VIBES.map((vibe, i) => (
                         <button
-                            key={vibe.name}
+                            key={vibe.emoji}
                             onClick={() => navigate(`/cafes?${vibe.filter}`)}
                             className={`relative bg-gradient-to-br ${vibe.gradient} rounded-2xl p-5 text-left hover:scale-105 transition-transform duration-200 group overflow-hidden`}
                         >
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-2xl" />
                             <div className="relative z-10">
                                 <div className="mb-3" style={{ fontSize: '2rem' }}>{vibe.emoji}</div>
-                                <div className="text-white mb-0.5" style={{ fontSize: '1rem', fontWeight: 700 }}>{vibe.name}</div>
-                                <div className="text-white/60" style={{ fontSize: '0.78rem' }}>{vibe.count}</div>
+                                <div className="text-white mb-0.5" style={{ fontSize: '1rem', fontWeight: 700 }}>{t('vibes.items.' + i + '.name')}</div>
+                                <div className="text-white/60" style={{ fontSize: '0.78rem' }}>{t('vibes.items.' + i + '.count')}</div>
                             </div>
                         </button>
                     ))}
