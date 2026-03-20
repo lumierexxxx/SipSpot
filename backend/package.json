@@ -2,7 +2,8 @@
   "name": "sipspot-backend",
   "version": "1.0.0",
   "description": "SipSpot",
-  "main": "server.js",
+  "type": "module",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch server/server.ts",
     "start": "node dist/server.js",
