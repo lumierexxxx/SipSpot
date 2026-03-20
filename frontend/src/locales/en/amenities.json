@@ -1,0 +1,14 @@
+{
+  "wifi": "WiFi",
+  "power_outlet": "Power Outlet",
+  "quiet": "Quiet Space",
+  "outdoor_seating": "Outdoor Seating",
+  "pet_friendly": "Pet Friendly",
+  "no_smoking": "No Smoking",
+  "air_conditioning": "Air Conditioning",
+  "parking": "Parking",
+  "wheelchair_accessible": "Wheelchair Accessible",
+  "laptop_friendly": "Laptop Friendly",
+  "group_friendly": "Group Friendly",
+  "work_friendly": "Work Friendly"
+}

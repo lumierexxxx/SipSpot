@@ -1,0 +1,14 @@
+{
+  "wifi": "WiFi",
+  "power_outlet": "电源插座",
+  "quiet": "安静环境",
+  "outdoor_seating": "户外座位",
+  "pet_friendly": "宠物友好",
+  "no_smoking": "禁烟",
+  "air_conditioning": "空调",
+  "parking": "提供停车位",
+  "wheelchair_accessible": "无障碍通行（轮椅可进入）",
+  "laptop_friendly": "适合使用笔记本电脑",
+  "group_friendly": "适合团体聚会",
+  "work_friendly": "适合工作 / 办公"
+}
