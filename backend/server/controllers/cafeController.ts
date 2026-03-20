@@ -9,6 +9,7 @@ import { Response, NextFunction } from 'express';
 import Cafe from '../models/cafe';
 import ExpressError from '../utils/ExpressError';
 import * as embeddingService from '../services/embeddingService';
+import { cloudinary } from '../services/cloudinary';
 import { AuthRequest } from '../types';
 
 /**
@@ -232,7 +233,7 @@ export const deleteCafe = async (req: AuthRequest, res: Response, next: NextFunc
         }
 
         if (cafe.images && cafe.images.length > 0) {
-            const cloudinary = require('../config/cloudinary');
+            // cloudinary imported at top of file
             for (const image of cafe.images) {
                 await cloudinary.uploader.destroy(image.publicId);
             }
