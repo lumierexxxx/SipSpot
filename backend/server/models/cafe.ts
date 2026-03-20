@@ -5,6 +5,7 @@
 
 import mongoose, { Schema, model } from 'mongoose'
 import Review from './review'
+import * as aiService from '../services/aiService'
 import { ICafe, AmenityKey, SpecialtyType, DayKey, VibeType } from '../types'
 
 // ============================================
@@ -401,7 +402,7 @@ CafeSchema.methods.incrementViewCount = async function() {
 CafeSchema.methods.generateAISummary = async function() {
     try {
         const ReviewModel = mongoose.model('Review');
-        const aiService = require('../services/aiService');
+        // aiService imported at top of file
 
         // 获取最近20条评论
         const reviews = await ReviewModel.find({ cafe: this._id })
@@ -412,7 +413,7 @@ CafeSchema.methods.generateAISummary = async function() {
         console.log(`📝 为咖啡店 "${this.name}" 生成AI总结 (基于 ${reviews.length} 条评论)`);
 
         // 调用 AI 服务生成总结
-        const summary = await aiService.generateCafeFeatureSummary(this, reviews);
+        const summary = await aiService.generateCafeSummary(this, reviews) as any;
 
         // 更新 AI 总结
         this.aiSummary = {
