@@ -7,6 +7,7 @@ import express from 'express';
 const router = express.Router();
 import { protect, authorize } from '../middleware/auth';
 import ExpressError from '../utils/ExpressError'; // 添加这行
+import Review from '../models/review';
 
 import {
     getReview,
@@ -98,8 +99,6 @@ router.post('/:id/analyze', protect, analyzeReview);
  */
 router.get('/admin/reported', protect, authorize('admin'), async (req, res, next) => {
     try {
-        const Review = require('../models/review');
-
         const reportedReviews = await Review.find({ isReported: true })
             .populate('author', 'username email avatar')
             .populate('cafe', 'name')
@@ -124,7 +123,6 @@ router.get('/admin/reported', protect, authorize('admin'), async (req, res, next
  */
 router.put('/:id/moderate', protect, authorize('admin'), async (req, res, next) => {
     try {
-        const Review = require('../models/review');
         const { action, reason } = req.body;
 
         const review = await Review.findById(req.params.id);
