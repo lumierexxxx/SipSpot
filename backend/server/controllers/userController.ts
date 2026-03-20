@@ -4,13 +4,15 @@
 // 推荐/偏好 → recommendationController
 // ============================================
 
-const User = require('../models/user');
-const Cafe = require('../models/cafe');
-const Review = require('../models/review');
-const ExpressError = require('../utils/ExpressError');
-const asyncHandler = require('../utils/asyncHandler');
-const embeddingService = require('../services/embeddingService');
-const vectorService = require('../services/vectorService');
+import { Response } from 'express';
+import User from '../models/user';
+import Cafe from '../models/cafe';
+import Review from '../models/review';
+import ExpressError from '../utils/ExpressError';
+import asyncHandler from '../utils/asyncHandler';
+import * as embeddingService from '../services/embeddingService';
+import * as vectorService from '../services/vectorService';
+import { AuthRequest } from '../types';
 
 // ============================================
 // 用户资料
@@ -21,8 +23,8 @@ const vectorService = require('../services/vectorService');
  * @route   GET /api/users/me
  * @access  Private
  */
-exports.getMe = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id)
+export const getMe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await (User as any).findById((req.user as any).id)
         .populate('favorites', 'name images rating location')
         .populate({
             path: 'visited.cafe',
@@ -44,9 +46,9 @@ exports.getMe = asyncHandler(async (req, res) => {
  * @route   PUT /api/users/me
  * @access  Private
  */
-exports.updateProfile = asyncHandler(async (req, res) => {
+export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const allowedUpdates = ['username', 'email', 'avatar', 'bio'];
-    const updates = {};
+    const updates: Record<string, any> = {};
 
     Object.keys(req.body).forEach(key => {
         if (allowedUpdates.includes(key)) {
@@ -59,8 +61,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         if (updates.username) conditions.push({ username: updates.username.toLowerCase() });
         if (updates.email) conditions.push({ email: updates.email.toLowerCase() });
 
-        const existingUser = await User.findOne({
-            _id: { $ne: req.user.id },
+        const existingUser = await (User as any).findOne({
+            _id: { $ne: (req.user as any).id },
             $or: conditions
         });
 
@@ -70,8 +72,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
         }
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user.id,
+    const user = await (User as any).findByIdAndUpdate(
+        (req.user as any).id,
         updates,
         { new: true, runValidators: true }
     ).select('-password');
@@ -92,8 +94,8 @@ exports.updateProfile = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/favorites
  * @access  Private
  */
-exports.getFavorites = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id)
+export const getFavorites = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await (User as any).findById((req.user as any).id)
         .populate({
             path: 'favorites',
             select: 'name images rating location city price amenities reviewCount'
@@ -111,11 +113,11 @@ exports.getFavorites = asyncHandler(async (req, res) => {
  * @route   POST /api/users/me/favorites/:cafeId
  * @access  Private
  */
-exports.addFavorite = asyncHandler(async (req, res) => {
-    const cafe = await Cafe.findById(req.params.cafeId);
+export const addFavorite = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const cafe = await (Cafe as any).findById(req.params.cafeId);
     if (!cafe) throw new ExpressError('咖啡店不存在', 404);
 
-    const user = await User.findById(req.user.id);
+    const user = await (User as any).findById((req.user as any).id);
     if (user.hasFavorite(cafe._id)) {
         throw new ExpressError('已在收藏中', 400);
     }
@@ -134,18 +136,18 @@ exports.addFavorite = asyncHandler(async (req, res) => {
     // 异步更新用户偏好向量（添加收藏）
     process.nextTick(async () => {
         try {
-            if (!embeddingService.isReady()) return;
-            const userId = req.user.id;
+            if (!(embeddingService as any).isReady()) return;
+            const userId = (req.user as any).id;
             const cafeId = req.params.cafeId;
 
-            const freshUser = await User.findById(userId)
+            const freshUser = await (User as any).findById(userId)
                 .select('+preferenceEmbedding +preferenceHistory +preferenceEmbeddingUpdatedAt');
-            if (!vectorService.shouldUpdatePreference(freshUser)) return;
+            if (!(vectorService as any).shouldUpdatePreference(freshUser)) return;
 
-            const cafeWithEmb = await Cafe.findById(cafeId).select('+embedding');
+            const cafeWithEmb = await (Cafe as any).findById(cafeId).select('+embedding');
             if (!cafeWithEmb || !cafeWithEmb.embedding || cafeWithEmb.embedding.length !== 768) return;
 
-            await User.findByIdAndUpdate(userId, {
+            await (User as any).findByIdAndUpdate(userId, {
                 $push: {
                     preferenceHistory: {
                         $each: [{ cafeId, weight: 2, addedAt: new Date() }],
@@ -154,19 +156,19 @@ exports.addFavorite = asyncHandler(async (req, res) => {
                 }
             }, { runValidators: false });
 
-            const updatedUser = await User.findById(userId).select('+preferenceHistory');
+            const updatedUser = await (User as any).findById(userId).select('+preferenceHistory');
             const cafeMap = await buildCafeEmbeddingMap(updatedUser.preferenceHistory);
             const historyItems = buildHistoryItems(updatedUser.preferenceHistory, cafeMap);
-            const newEmbedding = vectorService.computeUserEmbedding(historyItems);
+            const newEmbedding = (vectorService as any).computeUserEmbedding(historyItems);
             if (newEmbedding.length === 0) return;
 
-            await User.findByIdAndUpdate(userId, {
+            await (User as any).findByIdAndUpdate(userId, {
                 preferenceEmbedding: newEmbedding,
                 preferenceEmbeddingUpdatedAt: new Date()
             }, { runValidators: false });
 
             console.log(`✅ 用户 ${userId} 偏好向量已更新（添加收藏）`);
-        } catch (e) {
+        } catch (e: any) {
             console.error('❌ 更新用户偏好向量失败（添加收藏）:', e.message);
         }
     });
@@ -177,11 +179,11 @@ exports.addFavorite = asyncHandler(async (req, res) => {
  * @route   DELETE /api/users/me/favorites/:cafeId
  * @access  Private
  */
-exports.removeFavorite = asyncHandler(async (req, res) => {
-    const cafe = await Cafe.findById(req.params.cafeId);
+export const removeFavorite = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const cafe = await (Cafe as any).findById(req.params.cafeId);
     if (!cafe) throw new ExpressError('咖啡店不存在', 404);
 
-    const user = await User.findById(req.user.id);
+    const user = await (User as any).findById((req.user as any).id);
     await user.removeFavorite(cafe._id);
 
     cafe.favoriteCount = Math.max(0, (cafe.favoriteCount || 0) - 1);
@@ -196,33 +198,33 @@ exports.removeFavorite = asyncHandler(async (req, res) => {
     // 异步更新用户偏好向量（取消收藏）
     process.nextTick(async () => {
         try {
-            if (!embeddingService.isReady()) return;
-            const userId = req.user.id;
+            if (!(embeddingService as any).isReady()) return;
+            const userId = (req.user as any).id;
             const cafeId = req.params.cafeId;
 
-            const freshUser = await User.findById(userId)
+            const freshUser = await (User as any).findById(userId)
                 .select('+preferenceEmbedding +preferenceHistory +preferenceEmbeddingUpdatedAt');
-            if (!vectorService.shouldUpdatePreference(freshUser)) return;
+            if (!(vectorService as any).shouldUpdatePreference(freshUser)) return;
 
-            await User.findByIdAndUpdate(userId, {
+            await (User as any).findByIdAndUpdate(userId, {
                 $pull: { preferenceHistory: { cafeId } }
             }, { runValidators: false });
 
-            const updatedUser = await User.findById(userId).select('+preferenceHistory');
+            const updatedUser = await (User as any).findById(userId).select('+preferenceHistory');
             if (!updatedUser.preferenceHistory || updatedUser.preferenceHistory.length === 0) return;
 
             const cafeMap = await buildCafeEmbeddingMap(updatedUser.preferenceHistory);
             const historyItems = buildHistoryItems(updatedUser.preferenceHistory, cafeMap);
-            const newEmbedding = vectorService.computeUserEmbedding(historyItems);
+            const newEmbedding = (vectorService as any).computeUserEmbedding(historyItems);
             if (newEmbedding.length === 0) return;
 
-            await User.findByIdAndUpdate(userId, {
+            await (User as any).findByIdAndUpdate(userId, {
                 preferenceEmbedding: newEmbedding,
                 preferenceEmbeddingUpdatedAt: new Date()
             }, { runValidators: false });
 
             console.log(`✅ 用户 ${userId} 偏好向量已更新（取消收藏）`);
-        } catch (e) {
+        } catch (e: any) {
             console.error('❌ 更新用户偏好向量失败（取消收藏）:', e.message);
         }
     });
@@ -233,8 +235,8 @@ exports.removeFavorite = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/favorites/:cafeId/check
  * @access  Private
  */
-exports.checkFavorite = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id);
+export const checkFavorite = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await (User as any).findById((req.user as any).id);
     res.status(200).json({
         success: true,
         data: { isFavorited: user.hasFavorite(req.params.cafeId) }
@@ -250,8 +252,8 @@ exports.checkFavorite = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/visited
  * @access  Private
  */
-exports.getVisitedCafes = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id)
+export const getVisitedCafes = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await (User as any).findById((req.user as any).id)
         .populate({
             path: 'visited.cafe',
             select: 'name images rating location city'
@@ -269,11 +271,11 @@ exports.getVisitedCafes = asyncHandler(async (req, res) => {
  * @route   POST /api/users/me/visited/:cafeId
  * @access  Private
  */
-exports.markAsVisited = asyncHandler(async (req, res) => {
-    const cafe = await Cafe.findById(req.params.cafeId);
+export const markAsVisited = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const cafe = await (Cafe as any).findById(req.params.cafeId);
     if (!cafe) throw new ExpressError('咖啡店不存在', 404);
 
-    const user = await User.findById(req.user.id);
+    const user = await (User as any).findById((req.user as any).id);
     await user.visitCafe(cafe._id);
 
     res.status(200).json({ success: true, message: '已记录访问' });
@@ -288,24 +290,24 @@ exports.markAsVisited = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/reviews
  * @access  Private
  */
-exports.getMyReviews = asyncHandler(async (req, res) => {
+export const getMyReviews = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const reviews = await Review.find({ author: req.user.id })
+    const reviews = await (Review as any).find({ author: (req.user as any).id })
         .populate('cafe', 'name images rating city')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit as string));
 
-    const total = await Review.countDocuments({ author: req.user.id });
+    const total = await (Review as any).countDocuments({ author: (req.user as any).id });
 
     res.status(200).json({
         success: true,
         count: reviews.length,
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page as string),
+        pages: Math.ceil(total / parseInt(limit as string)),
         data: reviews
     });
 });
@@ -315,23 +317,23 @@ exports.getMyReviews = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/cafes
  * @access  Private
  */
-exports.getMyCafes = asyncHandler(async (req, res) => {
+export const getMyCafes = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const cafes = await Cafe.find({ author: req.user.id })
+    const cafes = await (Cafe as any).find({ author: (req.user as any).id })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit as string));
 
-    const total = await Cafe.countDocuments({ author: req.user.id });
+    const total = await (Cafe as any).countDocuments({ author: (req.user as any).id });
 
     res.status(200).json({
         success: true,
         count: cafes.length,
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page as string),
+        pages: Math.ceil(total / parseInt(limit as string)),
         data: cafes
     });
 });
@@ -341,12 +343,12 @@ exports.getMyCafes = asyncHandler(async (req, res) => {
  * @route   GET /api/users/me/stats
  * @access  Private
  */
-exports.getMyStats = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+export const getMyStats = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = (req.user as any).id;
     const [reviewCount, cafeCount, user] = await Promise.all([
-        Review.countDocuments({ author: userId }),
-        Cafe.countDocuments({ author: userId }),
-        User.findById(userId)
+        (Review as any).countDocuments({ author: userId }),
+        (Cafe as any).countDocuments({ author: userId }),
+        (User as any).findById(userId)
     ]);
 
     res.status(200).json({
@@ -369,8 +371,8 @@ exports.getMyStats = asyncHandler(async (req, res) => {
  * @route   GET /api/users/:userId
  * @access  Public
  */
-exports.getUserProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.userId)
+export const getUserProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await (User as any).findById(req.params.userId)
         .select('username avatar bio createdAt');
 
     if (!user) throw new ExpressError('用户不存在', 404);
@@ -383,24 +385,24 @@ exports.getUserProfile = asyncHandler(async (req, res) => {
  * @route   GET /api/users/:userId/reviews
  * @access  Public
  */
-exports.getUserReviews = asyncHandler(async (req, res) => {
+export const getUserReviews = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const reviews = await Review.find({ author: req.params.userId })
+    const reviews = await (Review as any).find({ author: req.params.userId })
         .populate('cafe', 'name images rating city')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit as string));
 
-    const total = await Review.countDocuments({ author: req.params.userId });
+    const total = await (Review as any).countDocuments({ author: req.params.userId });
 
     res.status(200).json({
         success: true,
         count: reviews.length,
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page as string),
+        pages: Math.ceil(total / parseInt(limit as string)),
         data: reviews
     });
 });
@@ -410,41 +412,41 @@ exports.getUserReviews = asyncHandler(async (req, res) => {
  * @route   GET /api/users/:userId/cafes
  * @access  Public
  */
-exports.getUserCafes = asyncHandler(async (req, res) => {
+export const getUserCafes = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const cafes = await Cafe.find({ author: req.params.userId })
+    const cafes = await (Cafe as any).find({ author: req.params.userId })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit as string));
 
-    const total = await Cafe.countDocuments({ author: req.params.userId });
+    const total = await (Cafe as any).countDocuments({ author: req.params.userId });
 
     res.status(200).json({
         success: true,
         count: cafes.length,
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page as string),
+        pages: Math.ceil(total / parseInt(limit as string)),
         data: cafes
     });
 });
 
 // ============================================
-// 偏好向量计算辅助函数（reviewController.js 中有相同副本）
+// 偏好向量计算辅助函数（reviewController.ts 中有相同副本）
 // ============================================
 
 /**
  * 批量加载 preferenceHistory 中所有 cafe 的 embedding
- * @param {Array} history - preferenceHistory 数组
- * @returns {Promise<Map<string, number[]>>} cafeId → embedding
+ * @param history - preferenceHistory 数组
+ * @returns cafeId → embedding
  */
-async function buildCafeEmbeddingMap(history) {
+async function buildCafeEmbeddingMap(history: any[]): Promise<Map<string, number[]>> {
     const ids = history.map(h => h.cafeId);
-    const cafes = await Cafe.find({ _id: { $in: ids } }).select('+embedding');
-    const map = new Map();
-    cafes.forEach(c => {
+    const cafes = await (Cafe as any).find({ _id: { $in: ids } }).select('+embedding');
+    const map = new Map<string, number[]>();
+    cafes.forEach((c: any) => {
         if (c.embedding && c.embedding.length === 768) {
             map.set(c._id.toString(), c.embedding);
         }
@@ -455,7 +457,7 @@ async function buildCafeEmbeddingMap(history) {
 /**
  * 将 preferenceHistory 转换为 computeUserEmbedding 所需格式
  */
-function buildHistoryItems(history, cafeMap) {
+function buildHistoryItems(history: any[], cafeMap: Map<string, number[]>) {
     return history
         .map(h => ({
             embedding: cafeMap.get(h.cafeId.toString()),
@@ -464,3 +466,9 @@ function buildHistoryItems(history, cafeMap) {
         }))
         .filter(h => h.embedding);
 }
+
+// ============================================
+// Route name aliases (routes/users.ts uses these names)
+// ============================================
+export const addToFavorites = addFavorite;
+export const removeFromFavorites = removeFavorite;

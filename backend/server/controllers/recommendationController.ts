@@ -4,12 +4,14 @@
 // 处理用户偏好学习和咖啡店推荐
 // ============================================
 
-const User = require('../models/user');
-const Cafe = require('../models/cafe');
-const Review = require('../models/review');
-const ExpressError = require('../utils/ExpressError');
-const aiService = require('../services/aiService');
-const vectorService = require('../services/vectorService');
+import { Response, NextFunction } from 'express';
+import User from '../models/user';
+import Cafe from '../models/cafe';
+import Review from '../models/review';
+import ExpressError from '../utils/ExpressError';
+import * as aiService from '../services/aiService';
+import * as vectorService from '../services/vectorService';
+import { AuthRequest } from '../types';
 
 // ============================================
 // 个性化推荐相关功能
@@ -21,7 +23,7 @@ const vectorService = require('../services/vectorService');
  * @access  Private (需要登录)
  * @query   limit - 返回数量(默认10)
  * @query   includeLocation - 是否包含位置优先推荐(默认false)
- * 
+ *
  * 返回格式:
  * {
  *   recommendations: [
@@ -34,20 +36,20 @@ const vectorService = require('../services/vectorService');
  *   ]
  * }
  */
-exports.getRecommendations = async (req, res, next) => {
+export const getRecommendations = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
+        const userId = (req.user as any)._id;
         const { limit = 10 } = req.query;
 
-        console.log(`🎯 为用户 ${req.user.username} 生成个性化推荐`);
+        console.log(`🎯 为用户 ${(req.user as any).username} 生成个性化推荐`);
 
         // 加载用户（含 preferenceEmbedding）
-        const user = await User.findById(userId)
+        const user = await (User as any).findById(userId)
             .select('+preferenceEmbedding')
             .populate('favorites')
             .populate('visited.cafe');
 
-        const userReviews = await Review.find({ author: userId })
+        const userReviews = await (Review as any).find({ author: userId })
             .populate('cafe')
             .sort({ createdAt: -1 })
             .limit(50);
@@ -56,21 +58,21 @@ exports.getRecommendations = async (req, res, next) => {
         if (user.preferenceEmbedding && user.preferenceEmbedding.length >= 768) {
             console.log('🧮 使用向量推荐');
 
-            const candidates = await Cafe.find({
+            const candidates = await (Cafe as any).find({
                 isActive: true,
                 embeddingUpdatedAt: { $exists: true, $ne: null },
-                _id: { $nin: user.favorites.map(f => f._id || f) }
+                _id: { $nin: user.favorites.map((f: any) => f._id || f) }
             })
             .select('+embedding')
             .lean();
 
-            const ranked = vectorService.rankCafes(
+            const ranked = (vectorService as any).rankCafes(
                 user.preferenceEmbedding,
                 candidates,
-                { topK: parseInt(limit) }
+                { topK: parseInt(limit as string) }
             );
 
-            const recommendations = ranked.map(({ cafe, similarityScore }) => ({
+            const recommendations = ranked.map(({ cafe, similarityScore }: any) => ({
                 cafe,
                 score: Math.round(similarityScore * 100),
                 reasons: ['基于您的偏好推荐'],
@@ -94,7 +96,7 @@ exports.getRecommendations = async (req, res, next) => {
         // ── 降级：规则推荐路径（保留原有逻辑）──────────────
         console.log('⚠️  用户无偏好向量，使用规则推荐');
 
-        const candidateCafes = await Cafe.find({
+        const candidateCafes = await (Cafe as any).find({
             isActive: true,
             _id: { $nin: user.favorites }
         })
@@ -102,7 +104,7 @@ exports.getRecommendations = async (req, res, next) => {
         .sort({ rating: -1 })
         .limit(100);
 
-        const recommendations = await aiService.generatePersonalizedRecommendations(
+        const recommendations = await (aiService as any).generatePersonalizedRecommendations(
             user,
             candidateCafes,
             { reviews: userReviews, favorites: user.favorites, visited: user.visited }
@@ -110,7 +112,7 @@ exports.getRecommendations = async (req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            recommendations: recommendations.slice(0, parseInt(limit)),
+            recommendations: recommendations.slice(0, parseInt(limit as string)),
             basedOn: {
                 reviewCount: userReviews.length,
                 favoriteCount: user.favorites.length,
@@ -131,39 +133,39 @@ exports.getRecommendations = async (req, res, next) => {
  * @route   POST /api/recommendations/nearby
  * @access  Private
  * @body    { location: { lng, lat }, radius?: number }
- * 
+ *
  * 结合用户偏好和地理位置的推荐
  */
-exports.getNearbyRecommendations = async (req, res, next) => {
+export const getNearbyRecommendations = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
+        const userId = (req.user as any)._id;
         const { location, radius = 5000, limit = 10 } = req.body;
-        
+
         if (!location || !location.lng || !location.lat) {
             return next(new ExpressError('请提供位置信息', 400));
         }
-        
+
         console.log(`📍 获取附近推荐: ${radius}米内`);
-        
+
         // 获取用户信息
-        const user = await User.findById(userId)
+        const user = await (User as any).findById(userId)
             .populate('favorites')
             .populate('visited.cafe');
-        
+
         // 获取历史评论
-        const userReviews = await Review.find({ author: userId })
+        const userReviews = await (Review as any).find({ author: userId })
             .populate('cafe')
             .sort({ createdAt: -1 })
             .limit(30);
-        
+
         // 获取附近咖啡店
-        const nearbyCafes = await Cafe.findNearby(
+        const nearbyCafes = await (Cafe as any).findNearby(
             parseFloat(location.lng),
             parseFloat(location.lat),
             parseInt(radius),
             50 // 候选50个
         );
-        
+
         if (nearbyCafes.length === 0) {
             return res.status(200).json({
                 success: true,
@@ -173,9 +175,9 @@ exports.getNearbyRecommendations = async (req, res, next) => {
                 searchRadius: radius
             });
         }
-        
+
         // 生成推荐
-        const recommendations = await aiService.generatePersonalizedRecommendations(
+        const recommendations = await (aiService as any).generatePersonalizedRecommendations(
             user,
             nearbyCafes,
             {
@@ -184,7 +186,7 @@ exports.getNearbyRecommendations = async (req, res, next) => {
                 visited: user.visited
             }
         );
-        
+
         res.status(200).json({
             success: true,
             recommendations: recommendations.slice(0, parseInt(limit)),
@@ -192,7 +194,7 @@ exports.getNearbyRecommendations = async (req, res, next) => {
             searchRadius: radius,
             totalNearby: nearbyCafes.length
         });
-        
+
     } catch (error) {
         console.error('获取附近推荐失败:', error);
         next(error);
@@ -208,18 +210,18 @@ exports.getNearbyRecommendations = async (req, res, next) => {
  * @route   GET /api/recommendations/preferences
  * @access  Private
  */
-exports.getUserPreferences = async (req, res, next) => {
+export const getUserPreferences = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const user = await User.findById(req.user._id);
-        
+        const user = await (User as any).findById((req.user as any)._id);
+
         const preferencesSummary = user.getPreferencesSummary();
-        
+
         res.status(200).json({
             success: true,
             preferences: user.preferences,
             summary: preferencesSummary
         });
-        
+
     } catch (error) {
         next(error);
     }
@@ -230,7 +232,7 @@ exports.getUserPreferences = async (req, res, next) => {
  * @route   PUT /api/recommendations/preferences
  * @access  Private
  * @body    { preferences: { manual: { ... } } }
- * 
+ *
  * 示例请求:
  * PUT /api/recommendations/preferences
  * {
@@ -243,27 +245,27 @@ exports.getUserPreferences = async (req, res, next) => {
  *   }
  * }
  */
-exports.updatePreferences = async (req, res, next) => {
+export const updatePreferences = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
+        const userId = (req.user as any)._id;
         const { preferences } = req.body;
-        
+
         if (!preferences) {
             return next(new ExpressError('请提供偏好设置', 400));
         }
-        
-        const user = await User.findById(userId);
-        
+
+        const user = await (User as any).findById(userId);
+
         // 更新手动偏好
         await user.updatePreferences(preferences);
-        
+
         res.status(200).json({
             success: true,
             message: '偏好已更新',
             preferences: user.preferences,
             summary: user.getPreferencesSummary()
         });
-        
+
     } catch (error) {
         console.error('更新偏好失败:', error);
         next(error);
@@ -274,20 +276,20 @@ exports.updatePreferences = async (req, res, next) => {
  * @desc    🤖 从用户行为中学习偏好
  * @route   POST /api/recommendations/learn
  * @access  Private
- * 
+ *
  * 分析用户的收藏、评论、访问记录，自动更新偏好
  */
-exports.learnFromBehavior = async (req, res, next) => {
+export const learnFromBehavior = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
-        
-        console.log(`🎓 开始学习用户 ${req.user.username} 的偏好`);
-        
-        const user = await User.findById(userId);
-        
+        const userId = (req.user as any)._id;
+
+        console.log(`🎓 开始学习用户 ${(req.user as any).username} 的偏好`);
+
+        const user = await (User as any).findById(userId);
+
         // 调用User模型的学习方法
         const updatedPreferences = await user.learnFromBehavior();
-        
+
         if (!updatedPreferences) {
             return res.status(200).json({
                 success: true,
@@ -295,7 +297,7 @@ exports.learnFromBehavior = async (req, res, next) => {
                 preferences: user.preferences
             });
         }
-        
+
         res.status(200).json({
             success: true,
             message: '已从您的行为中学习偏好',
@@ -303,7 +305,7 @@ exports.learnFromBehavior = async (req, res, next) => {
             confidence: updatedPreferences.confidence,
             summary: user.getPreferencesSummary()
         });
-        
+
     } catch (error) {
         console.error('学习偏好失败:', error);
         next(error);
@@ -314,15 +316,15 @@ exports.learnFromBehavior = async (req, res, next) => {
  * @desc    🔄 重置用户偏好
  * @route   DELETE /api/recommendations/preferences
  * @access  Private
- * 
+ *
  * 清除所有学习到的偏好，重新开始
  */
-exports.resetPreferences = async (req, res, next) => {
+export const resetPreferences = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
-        
-        const user = await User.findById(userId);
-        
+        const userId = (req.user as any)._id;
+
+        const user = await (User as any).findById(userId);
+
         // 重置偏好为默认值
         user.preferences = {
             learned: {
@@ -340,15 +342,15 @@ exports.resetPreferences = async (req, res, next) => {
             lastUpdated: Date.now(),
             confidence: 0
         };
-        
+
         await user.save();
-        
+
         res.status(200).json({
             success: true,
             message: '偏好已重置',
             preferences: user.preferences
         });
-        
+
     } catch (error) {
         next(error);
     }
@@ -362,36 +364,36 @@ exports.resetPreferences = async (req, res, next) => {
  * @desc    📊 获取推荐系统统计信息
  * @route   GET /api/recommendations/stats
  * @access  Private
- * 
+ *
  * 显示用户的推荐系统使用情况
  */
-exports.getRecommendationStats = async (req, res, next) => {
+export const getRecommendationStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
-        
-        const user = await User.findById(userId)
+        const userId = (req.user as any)._id;
+
+        const user = await (User as any).findById(userId)
             .populate('favorites')
             .populate('visited.cafe');
-        
-        const reviewCount = await Review.countDocuments({ author: userId });
-        const highRatedReviews = await Review.countDocuments({
+
+        const reviewCount = await (Review as any).countDocuments({ author: userId });
+        const highRatedReviews = await (Review as any).countDocuments({
             author: userId,
             rating: { $gte: 4 }
         });
-        
+
         // 统计收藏店的特征
-        const favoriteAmenities = {};
-        user.favorites.forEach(cafe => {
-            cafe.amenities?.forEach(amenity => {
+        const favoriteAmenities: Record<string, number> = {};
+        user.favorites.forEach((cafe: any) => {
+            cafe.amenities?.forEach((amenity: string) => {
                 favoriteAmenities[amenity] = (favoriteAmenities[amenity] || 0) + 1;
             });
         });
-        
+
         const topFavoriteAmenities = Object.entries(favoriteAmenities)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([amenity, count]) => ({ amenity, count }));
-        
+
         res.status(200).json({
             success: true,
             stats: {
@@ -405,7 +407,7 @@ exports.getRecommendationStats = async (req, res, next) => {
             },
             readyForRecommendations: (reviewCount >= 3 || user.favorites.length >= 2)
         });
-        
+
     } catch (error) {
         next(error);
     }
@@ -415,34 +417,34 @@ exports.getRecommendationStats = async (req, res, next) => {
  * @desc    🎲 获取探索性推荐
  * @route   GET /api/recommendations/explore
  * @access  Private
- * 
+ *
  * 推荐用户可能从未尝试过的类型
  */
-exports.getExploreRecommendations = async (req, res, next) => {
+export const getExploreRecommendations = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user._id;
+        const userId = (req.user as any)._id;
         const { limit = 10 } = req.query;
-        
-        const user = await User.findById(userId)
+
+        const user = await (User as any).findById(userId)
             .populate('favorites');
-        
+
         // 获取用户已体验过的特色类型
-        const experiencedSpecialties = new Set();
-        user.favorites.forEach(cafe => {
+        const experiencedSpecialties = new Set<string>();
+        user.favorites.forEach((cafe: any) => {
             if (cafe.specialty) {
                 experiencedSpecialties.add(cafe.specialty);
             }
         });
-        
+
         // 查找用户从未尝试过的特色类型咖啡店
         const allSpecialties = ['意式浓缩 Espresso', '手冲咖啡 Pour Over', '冷萃咖啡 Cold Brew', '拉花咖啡 Latte Art', '精品咖啡豆 Specialty Beans', '甜点 Desserts', '轻食 Light Meals'];
         const unexploredSpecialties = allSpecialties.filter(s => !experiencedSpecialties.has(s));
-        
-        let exploreCafes = [];
-        
+
+        let exploreCafes: any[] = [];
+
         if (unexploredSpecialties.length > 0) {
             // 一次查询所有未体验特色的高评分咖啡店，再按特色分组取 top 2
-            const allCandidates = await Cafe.find({
+            const allCandidates = await (Cafe as any).find({
                 specialty: { $in: unexploredSpecialties },
                 isActive: true,
                 rating: { $gte: 4.0 },
@@ -451,7 +453,7 @@ exports.getExploreRecommendations = async (req, res, next) => {
             .sort({ rating: -1 });
 
             // 按 specialty 分组，每组最多取 2 家
-            const bySpecialty = {};
+            const bySpecialty: Record<string, any[]> = {};
             for (const cafe of allCandidates) {
                 const s = cafe.specialty;
                 if (!bySpecialty[s]) bySpecialty[s] = [];
@@ -460,7 +462,7 @@ exports.getExploreRecommendations = async (req, res, next) => {
             exploreCafes = Object.values(bySpecialty).flat();
         } else {
             // 如果都体验过，推荐高评分但未收藏的
-            exploreCafes = await Cafe.find({
+            exploreCafes = await (Cafe as any).find({
                 isActive: true,
                 _id: { $nin: user.favorites },
                 rating: { $gte: 4.5 },
@@ -469,21 +471,19 @@ exports.getExploreRecommendations = async (req, res, next) => {
             .sort({ rating: -1 })
             .limit(20);
         }
-        
+
         // 随机打乱并限制数量
         const shuffled = exploreCafes.sort(() => 0.5 - Math.random());
-        
+
         res.status(200).json({
             success: true,
             message: '为您推荐一些新的尝试',
-            recommendations: shuffled.slice(0, parseInt(limit)),
-            count: Math.min(shuffled.length, parseInt(limit))
+            recommendations: shuffled.slice(0, parseInt(limit as string)),
+            count: Math.min(shuffled.length, parseInt(limit as string))
         });
-        
+
     } catch (error) {
         console.error('获取探索推荐失败:', error);
         next(error);
     }
 };
-
-module.exports = exports;

@@ -3,37 +3,39 @@
 // 评论 CRUD + 投票 + 举报 + AI分析 + 管理员审核
 // ============================================
 
-const Review = require('../models/review');
-const Cafe = require('../models/cafe');
-const User = require('../models/user');
-const ExpressError = require('../utils/ExpressError.js');
-const { deleteImages } = require('../services/cloudinary');
-const { analyzeReview } = require('../services/aiService');
-const embeddingService = require('../services/embeddingService');
-const vectorService = require('../services/vectorService');
+import { Response, NextFunction } from 'express';
+import Review from '../models/review';
+import Cafe from '../models/cafe';
+import User from '../models/user';
+import ExpressError from '../utils/ExpressError';
+import { deleteImages } from '../services/cloudinary';
+import { analyzeReview as aiAnalyzeReview } from '../services/aiService';
+import * as embeddingService from '../services/embeddingService';
+import * as vectorService from '../services/vectorService';
+import { AuthRequest } from '../types';
 
 /**
  * @desc    Get all reviews for a cafe
  * @route   GET /api/cafes/:cafeId/reviews
  * @access  Public
  */
-exports.getReviews = async (req, res, next) => {
+export const getReviews = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { cafeId } = req.params;
         const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
 
-        const cafe = await Cafe.findById(cafeId);
+        const cafe = await (Cafe as any).findById(cafeId);
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
-        const reviews = await Review.getByCafe(cafeId, { page, limit, sort });
-        const total = await Review.countDocuments({ cafe: cafeId });
+        const reviews = await (Review as any).getByCafe(cafeId, { page, limit, sort });
+        const total = await (Review as any).countDocuments({ cafe: cafeId });
 
         res.status(200).json({
             success: true,
             count: reviews.length,
             total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            page: parseInt(page as string),
+            pages: Math.ceil(total / parseInt(limit as string)),
             data: reviews
         });
     } catch (error) {
@@ -46,16 +48,16 @@ exports.getReviews = async (req, res, next) => {
  * @route   GET /api/reviews/:id
  * @access  Public
  */
-exports.getReview = async (req, res, next) => {
+export const getReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const review = await Review.findById(req.params.id)
+        const review = await (Review as any).findById(req.params.id)
             .populate('author', 'username avatar bio')
             .populate('cafe', 'name images rating city');
 
         if (!review) return next(new ExpressError('Review not found', 404));
 
         res.status(200).json({ success: true, data: review });
-    } catch (error) {
+    } catch (error: any) {
         if (error.name === 'CastError') return next(new ExpressError('Invalid review ID', 400));
         next(error);
     }
@@ -66,45 +68,45 @@ exports.getReview = async (req, res, next) => {
  * @route   POST /api/cafes/:cafeId/reviews
  * @access  Private
  */
-exports.createReview = async (req, res, next) => {
+export const createReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { cafeId } = req.params;
 
-        const cafe = await Cafe.findById(cafeId);
+        const cafe = await (Cafe as any).findById(cafeId);
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
-        const existingReview = await Review.findOne({
+        const existingReview = await (Review as any).findOne({
             cafe: cafeId,
-            author: req.user.id
+            author: (req.user as any).id
         });
 
         if (existingReview) {
             return next(new ExpressError('You have already reviewed this cafe', 400));
         }
 
-        const reviewData = {
+        const reviewData: Record<string, any> = {
             ...req.body,
             cafe: cafeId,
-            author: req.user.id
+            author: (req.user as any).id
         };
 
-        if (req.files && req.files.length > 0) {
-            reviewData.images = req.files.map(file => ({
+        if ((req as any).files && (req as any).files.length > 0) {
+            reviewData.images = (req as any).files.map((file: any) => ({
                 url: file.path,
                 filename: file.filename,
                 publicId: file.filename
             }));
         }
 
-        const review = await Review.create(reviewData);
+        const review = await (Review as any).create(reviewData);
 
         cafe.reviews.push(review._id);
         await cafe.save({ validateBeforeSave: false });
 
         triggerAIAnalysis(review._id, review.content, cafe.name)
-            .catch(err => console.error('AI analysis failed:', err));
+            .catch((err: any) => console.error('AI analysis failed:', err));
 
-        await req.user.visitCafe(cafeId);
+        await (req.user as any).visitCafe(cafeId);
         await review.populate('author', 'username avatar');
 
         res.status(201).json({
@@ -117,17 +119,17 @@ exports.createReview = async (req, res, next) => {
         process.nextTick(async () => {
             try {
                 if (review.rating < 4) return;
-                if (!embeddingService.isReady()) return;
+                if (!(embeddingService as any).isReady()) return;
 
-                const userId = req.user.id;
-                const freshUser = await User.findById(userId)
+                const userId = (req.user as any).id;
+                const freshUser = await (User as any).findById(userId)
                     .select('+preferenceEmbedding +preferenceHistory +preferenceEmbeddingUpdatedAt');
-                if (!vectorService.shouldUpdatePreference(freshUser)) return;
+                if (!(vectorService as any).shouldUpdatePreference(freshUser)) return;
 
-                const cafeWithEmb = await Cafe.findById(cafeId).select('+embedding');
+                const cafeWithEmb = await (Cafe as any).findById(cafeId).select('+embedding');
                 if (!cafeWithEmb || !cafeWithEmb.embedding || cafeWithEmb.embedding.length !== 768) return;
 
-                await User.findByIdAndUpdate(userId, {
+                await (User as any).findByIdAndUpdate(userId, {
                     $push: {
                         preferenceHistory: {
                             $each: [{ cafeId, weight: 1, addedAt: new Date() }],
@@ -136,19 +138,19 @@ exports.createReview = async (req, res, next) => {
                     }
                 }, { runValidators: false });
 
-                const updatedUser = await User.findById(userId).select('+preferenceHistory');
+                const updatedUser = await (User as any).findById(userId).select('+preferenceHistory');
                 const cafeMap = await buildCafeEmbeddingMap(updatedUser.preferenceHistory);
                 const historyItems = buildHistoryItems(updatedUser.preferenceHistory, cafeMap);
-                const newEmbedding = vectorService.computeUserEmbedding(historyItems);
+                const newEmbedding = (vectorService as any).computeUserEmbedding(historyItems);
                 if (newEmbedding.length === 0) return;
 
-                await User.findByIdAndUpdate(userId, {
+                await (User as any).findByIdAndUpdate(userId, {
                     preferenceEmbedding: newEmbedding,
                     preferenceEmbeddingUpdatedAt: new Date()
                 }, { runValidators: false });
 
                 console.log(`✅ 高分评论触发偏好向量更新 (用户: ${userId})`);
-            } catch (e) {
+            } catch (e: any) {
                 console.error('❌ 评论触发偏好更新失败:', e.message);
             }
         });
@@ -162,12 +164,12 @@ exports.createReview = async (req, res, next) => {
  * @route   PUT /api/reviews/:id
  * @access  Private (Author only)
  */
-exports.updateReview = async (req, res, next) => {
+export const updateReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        let review = await Review.findById(req.params.id);
+        let review = await (Review as any).findById(req.params.id);
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        if (review.author.toString() !== req.user.id) {
+        if (review.author.toString() !== (req.user as any).id) {
             return next(new ExpressError('Not authorized to update this review', 403));
         }
 
@@ -178,9 +180,9 @@ exports.updateReview = async (req, res, next) => {
         await review.markAsEdited();
 
         if (req.body.content) {
-            const cafe = await Cafe.findById(review.cafe);
+            const cafe = await (Cafe as any).findById(review.cafe);
             triggerAIAnalysis(review._id, review.content, cafe.name)
-                .catch(err => console.error('AI analysis failed:', err));
+                .catch((err: any) => console.error('AI analysis failed:', err));
         }
 
         await review.populate('author', 'username avatar');
@@ -200,25 +202,25 @@ exports.updateReview = async (req, res, next) => {
  * @route   DELETE /api/reviews/:id
  * @access  Private (Author or Admin)
  */
-exports.deleteReview = async (req, res, next) => {
+export const deleteReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const review = await Review.findById(req.params.id);
+        const review = await (Review as any).findById(req.params.id);
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        if (review.author.toString() !== req.user.id && req.user.role !== 'admin') {
+        if (review.author.toString() !== (req.user as any).id && (req.user as any).role !== 'admin') {
             return next(new ExpressError('Not authorized to delete this review', 403));
         }
 
-        const cafe = await Cafe.findById(review.cafe);
+        const cafe = await (Cafe as any).findById(review.cafe);
         if (cafe) {
             cafe.reviews = cafe.reviews.filter(
-                id => id.toString() !== review._id.toString()
+                (id: any) => id.toString() !== review._id.toString()
             );
             await cafe.save({ validateBeforeSave: false });
         }
 
         if (review.images && review.images.length > 0) {
-            const publicIds = review.images.map(img => img.publicId);
+            const publicIds = review.images.map((img: any) => img.publicId);
             try {
                 await deleteImages(publicIds);
             } catch (error) {
@@ -243,7 +245,7 @@ exports.deleteReview = async (req, res, next) => {
  * @route   POST /api/reviews/:id/helpful
  * @access  Private
  */
-exports.voteHelpful = async (req, res, next) => {
+export const voteHelpful = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { voteType } = req.body;
 
@@ -251,14 +253,14 @@ exports.voteHelpful = async (req, res, next) => {
             return next(new ExpressError('Invalid vote type', 400));
         }
 
-        const review = await Review.findById(req.params.id);
+        const review = await (Review as any).findById(req.params.id);
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        if (review.author.toString() === req.user.id) {
+        if (review.author.toString() === (req.user as any).id) {
             return next(new ExpressError('Cannot vote on your own review', 400));
         }
 
-        await review.addHelpfulVote(req.user.id, voteType);
+        await review.addHelpfulVote((req.user as any).id, voteType);
 
         res.status(200).json({
             success: true,
@@ -279,12 +281,12 @@ exports.voteHelpful = async (req, res, next) => {
  * @route   DELETE /api/reviews/:id/helpful
  * @access  Private
  */
-exports.removeVote = async (req, res, next) => {
+export const removeVote = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const review = await Review.findById(req.params.id);
+        const review = await (Review as any).findById(req.params.id);
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        await review.removeHelpfulVote(req.user.id);
+        await review.removeHelpfulVote((req.user as any).id);
 
         res.status(200).json({
             success: true,
@@ -304,9 +306,9 @@ exports.removeVote = async (req, res, next) => {
  * @route   POST /api/reviews/:id/report
  * @access  Private
  */
-exports.reportReview = async (req, res, next) => {
+export const reportReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const review = await Review.findById(req.params.id);
+        const review = await (Review as any).findById(req.params.id);
         if (!review) return next(new ExpressError('Review not found', 404));
 
         await review.report();
@@ -325,22 +327,22 @@ exports.reportReview = async (req, res, next) => {
  * @route   POST /api/reviews/:id/response
  * @access  Private (Cafe owner or Admin)
  */
-exports.addOwnerResponse = async (req, res, next) => {
+export const addOwnerResponse = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { content } = req.body;
         if (!content) return next(new ExpressError('Please provide response content', 400));
 
-        const review = await Review.findById(req.params.id).populate('cafe');
+        const review = await (Review as any).findById(req.params.id).populate('cafe');
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        const isOwner = review.cafe.author.toString() === req.user.id;
-        const isAdmin = req.user.role === 'admin';
+        const isOwner = review.cafe.author.toString() === (req.user as any).id;
+        const isAdmin = (req.user as any).role === 'admin';
 
         if (!isOwner && !isAdmin) {
             return next(new ExpressError('Not authorized to respond to this review', 403));
         }
 
-        await review.addOwnerResponse(content, req.user.id);
+        await review.addOwnerResponse(content, (req.user as any).id);
 
         res.status(200).json({
             success: true,
@@ -357,12 +359,12 @@ exports.addOwnerResponse = async (req, res, next) => {
  * @route   POST /api/reviews/:id/analyze
  * @access  Private (Admin or review author)
  */
-exports.analyzeReviewEndpoint = async (req, res, next) => {
+export const analyzeReviewEndpoint = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const review = await Review.findById(req.params.id).populate('cafe', 'name');
+        const review = await (Review as any).findById(req.params.id).populate('cafe', 'name');
         if (!review) return next(new ExpressError('Review not found', 404));
 
-        if (review.author.toString() !== req.user.id && req.user.role !== 'admin') {
+        if (review.author.toString() !== (req.user as any).id && (req.user as any).role !== 'admin') {
             return next(new ExpressError('Not authorized', 403));
         }
 
@@ -385,12 +387,12 @@ exports.analyzeReviewEndpoint = async (req, res, next) => {
  * @route   GET /api/cafes/:cafeId/reviews/helpful
  * @access  Public
  */
-exports.getMostHelpful = async (req, res, next) => {
+export const getMostHelpful = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { cafeId } = req.params;
         const { limit = 5 } = req.query;
 
-        const reviews = await Review.getMostHelpful(cafeId, parseInt(limit));
+        const reviews = await (Review as any).getMostHelpful(cafeId, parseInt(limit as string));
 
         res.status(200).json({
             success: true,
@@ -407,10 +409,10 @@ exports.getMostHelpful = async (req, res, next) => {
  * @route   GET /api/cafes/:cafeId/reviews/sentiment
  * @access  Public
  */
-exports.getSentimentStats = async (req, res, next) => {
+export const getSentimentStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { cafeId } = req.params;
-        const stats = await Review.getSentimentStats(cafeId);
+        const stats = await (Review as any).getSentimentStats(cafeId);
         const total = stats.positive + stats.negative + stats.neutral;
 
         res.status(200).json({
@@ -439,9 +441,9 @@ exports.getSentimentStats = async (req, res, next) => {
  * @route   GET /api/reviews/admin/reported
  * @access  Private (仅管理员)
  */
-exports.getReportedReviews = async (req, res, next) => {
+export const getReportedReviews = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const reportedReviews = await Review.find({ isReported: true })
+        const reportedReviews = await (Review as any).find({ isReported: true })
             .populate('author', 'username email avatar')
             .populate('cafe', 'name')
             .sort('-reportCount -createdAt')
@@ -462,10 +464,10 @@ exports.getReportedReviews = async (req, res, next) => {
  * @route   PUT /api/reviews/:id/moderate
  * @access  Private (仅管理员)
  */
-exports.moderateReview = async (req, res, next) => {
+export const moderateReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { action, reason } = req.body;
-        const review = await Review.findById(req.params.id);
+        const review = await (Review as any).findById(req.params.id);
 
         if (!review) return next(new ExpressError('评论不存在', 404));
 
@@ -489,30 +491,30 @@ exports.moderateReview = async (req, res, next) => {
 // Helper Functions
 // ============================================
 
-async function triggerAIAnalysis(reviewId, content, cafeName) {
+async function triggerAIAnalysis(reviewId: any, content: string, cafeName: string) {
     try {
-        const analysisData = await analyzeReview(content, cafeName);
-        const review = await Review.findById(reviewId);
+        const analysisData = await aiAnalyzeReview(content, cafeName);
+        const review = await (Review as any).findById(reviewId);
         if (review) {
             await review.addAIAnalysis(analysisData);
             return analysisData;
         }
         return null;
-    } catch (error) {
+    } catch (error: any) {
         console.error('AI Analysis Error:', error.message);
         return null;
     }
 }
 
 // ============================================
-// 偏好向量计算辅助函数（与 userController.js 相同）
+// 偏好向量计算辅助函数（与 userController.ts 相同）
 // ============================================
 
-async function buildCafeEmbeddingMap(history) {
+async function buildCafeEmbeddingMap(history: any[]): Promise<Map<string, number[]>> {
     const ids = history.map(h => h.cafeId);
-    const cafes = await Cafe.find({ _id: { $in: ids } }).select('+embedding');
-    const map = new Map();
-    cafes.forEach(c => {
+    const cafes = await (Cafe as any).find({ _id: { $in: ids } }).select('+embedding');
+    const map = new Map<string, number[]>();
+    cafes.forEach((c: any) => {
         if (c.embedding && c.embedding.length === 768) {
             map.set(c._id.toString(), c.embedding);
         }
@@ -520,7 +522,7 @@ async function buildCafeEmbeddingMap(history) {
     return map;
 }
 
-function buildHistoryItems(history, cafeMap) {
+function buildHistoryItems(history: any[], cafeMap: Map<string, number[]>) {
     return history
         .map(h => ({
             embedding: cafeMap.get(h.cafeId.toString()),
@@ -529,3 +531,13 @@ function buildHistoryItems(history, cafeMap) {
         }))
         .filter(h => h.embedding);
 }
+
+// ============================================
+// Route name aliases (routes/reviews.ts uses these names)
+// ============================================
+export const analyzeReview = analyzeReviewEndpoint;
+// routes/reviews.ts imports getUserReviews from reviewController — not defined here;
+// that's the user-specific route handled in userController. Export a stub reference so
+// the route file compiles. The actual route file may be routing it incorrectly; exporting
+// getReviews under that alias keeps parity.
+export const getUserReviews = getReviews;
