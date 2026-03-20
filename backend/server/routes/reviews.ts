@@ -3,11 +3,11 @@
 // RESTful API endpoints for review operations
 // ============================================
 
-const express = require('express');
+import express from 'express';
 const router = express.Router({ mergeParams: true }); // Merge params from parent router
-const { protect } = require('../middleware/auth');
-const { uploadReviewImages } = require('../services/cloudinary');
-const {
+import { protect } from '../middleware/auth';
+import { uploadReviewImages } from '../services/cloudinary';
+import {
     getReviews,
     getReview,
     createReview,
@@ -21,7 +21,7 @@ const {
     getMostHelpful,
     getUserReviews,
     getSentimentStats
-} = require('../controllers/reviewController');
+} from '../controllers/reviewController';
 
 // ============================================
 // Public Routes
@@ -72,4 +72,4 @@ router.post('/', protect, uploadReviewImages, createReview);
  */
 // router.get('/user/reviews', protect, getUserReviews);
 
-module.exports = router;
+export default router;

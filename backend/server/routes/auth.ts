@@ -3,10 +3,10 @@
 // 处理用户注册、登录、密码管理等
 // ============================================
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const {
+import { protect } from '../middleware/auth';
+import {
     register,
     login,
     getMe,
@@ -16,7 +16,7 @@ const {
     resetPassword,
     refreshToken,
     logout
-} = require('../controllers/authController');
+} from '../controllers/authController';
 
 // ============================================
 // 公开路由（不需要认证）
@@ -96,4 +96,4 @@ router.put('/password', protect, updatePassword);
  */
 router.post('/logout', protect, logout);
 
-module.exports = router;
+export default router;

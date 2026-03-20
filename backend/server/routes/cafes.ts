@@ -4,14 +4,14 @@
 // 重要：所有静态路由必须在 /:cafeId 通配符路由之前！
 // ============================================
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
-const { protect, optionalAuth } = require('../middleware/auth');
-const { uploadCafeImages } = require('../services/cloudinary');
-const { validate, cafeSchema, explainSearchSchema } = require('../utils/validation');
+import rateLimit from 'express-rate-limit';
+import { protect, optionalAuth } from '../middleware/auth';
+import { uploadCafeImages } from '../services/cloudinary';
+import { validate, cafeSchema, explainSearchSchema } from '../utils/validation';
 
-const {
+import {
     getCafes,
     getNearby,
     getCafe,
@@ -22,9 +22,9 @@ const {
     searchCafes,
     getCafesByAmenities,
     getCafeStats
-} = require('../controllers/cafeController');
+} from '../controllers/cafeController';
 
-const { aiSearch, explainSearch } = require('../controllers/aiSearchController');
+import { aiSearch, explainSearch } from '../controllers/aiSearchController';
 
 // explain 接口独立限流：10 次/分钟/IP（防止 Qwen token 滥用）
 const explainLimiter = rateLimit({
@@ -60,7 +60,7 @@ router.delete('/:id', protect, deleteCafe);
 // 嵌套评论路由
 // 必须放在最后！/:cafeId 会匹配所有未命中的路径
 // ============================================
-const reviewRoutes = require('./reviews');
+import reviewRoutes from './reviews';
 router.use('/:cafeId/reviews', reviewRoutes);
 
-module.exports = router;
+export default router;

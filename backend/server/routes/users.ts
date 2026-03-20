@@ -3,10 +3,10 @@
 // 处理用户相关的路由
 // ============================================
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const {
+import { protect } from '../middleware/auth';
+import {
     getUserProfile,
     getFavorites,
     addToFavorites,
@@ -19,7 +19,7 @@ const {
     getMyStats,
     getUserCafes,
     getUserReviews
-} = require('../controllers/userController');
+} from '../controllers/userController';
 
 // ============================================
 // 当前用户相关路由（需要认证）
@@ -119,4 +119,4 @@ router.get('/:id/cafes', getUserCafes);
  */
 router.get('/:id/reviews', getUserReviews);
 
-module.exports = router;
+export default router;

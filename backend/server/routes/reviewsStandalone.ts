@@ -3,12 +3,12 @@
 // Routes for individual review operations (not nested under cafe)
 // ============================================
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
-const ExpressError = require('../utils/ExpressError'); // 添加这行
+import { protect, authorize } from '../middleware/auth';
+import ExpressError from '../utils/ExpressError'; // 添加这行
 
-const {
+import {
     getReview,
     updateReview,
     deleteReview,
@@ -17,7 +17,7 @@ const {
     reportReview,
     addOwnerResponse,
     analyzeReview
-} = require('../controllers/reviewController');
+} from '../controllers/reviewController';
 
 // ============================================
 // Public Routes
@@ -87,7 +87,8 @@ router.post('/:id/response', protect, addOwnerResponse);
  */
 router.post('/:id/analyze', protect, analyzeReview);
 
-// ============================================// 管理员路由
+// ============================================
+// 管理员路由
 // ============================================
 
 /**
@@ -98,13 +99,13 @@ router.post('/:id/analyze', protect, analyzeReview);
 router.get('/admin/reported', protect, authorize('admin'), async (req, res, next) => {
     try {
         const Review = require('../models/review');
-        
+
         const reportedReviews = await Review.find({ isReported: true })
             .populate('author', 'username email avatar')
             .populate('cafe', 'name')
             .sort('-reportCount -createdAt')
             .limit(100);
-        
+
         res.status(200).json({
             success: true,
             count: reportedReviews.length,
@@ -125,25 +126,25 @@ router.put('/:id/moderate', protect, authorize('admin'), async (req, res, next) 
     try {
         const Review = require('../models/review');
         const { action, reason } = req.body;
-        
+
         const review = await Review.findById(req.params.id);
-        
+
         if (!review) {
             return next(new ExpressError('评论不存在', 404));
         }
-        
+
         if (action === 'approve') {
             review.isReported = false;
             review.reportCount = 0;
             await review.save();
-            
+
             res.status(200).json({
                 success: true,
                 message: '评论已批准'
             });
         } else if (action === 'remove') {
             await review.remove();
-            
+
             res.status(200).json({
                 success: true,
                 message: '评论已删除',
@@ -157,4 +158,4 @@ router.put('/:id/moderate', protect, authorize('admin'), async (req, res, next) 
     }
 });
 
-module.exports = router;
+export default router;
