@@ -58,14 +58,15 @@ export type AmenityKey =
   | 'group_friendly'
   | 'work_friendly'
 
+// Language-neutral specialty keys (replaces bilingual strings in DB)
 export type SpecialtyType =
-  | '意式浓缩 Espresso'
-  | '手冲咖啡 Pour Over'
-  | '冷萃咖啡 Cold Brew'
-  | '拉花咖啡 Latte Art'
-  | '精品咖啡豆 Specialty Beans'
-  | '甜点 Desserts'
-  | '轻食 Light Meals'
+  | 'espresso'
+  | 'pour_over'
+  | 'cold_brew'
+  | 'latte_art'
+  | 'specialty_beans'
+  | 'desserts'
+  | 'light_meals'
 
 export type VibeType =
   | 'Specialty'
@@ -85,8 +86,18 @@ export interface ICafeImage {
   cardImage?: string
 }
 
+// Language-neutral day keys (replaces Chinese day names in DB)
+export type DayKey =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday'
+
 export interface IOpeningHours {
-  day: '周一' | '周二' | '周三' | '周四' | '周五' | '周六' | '周日'
+  day: DayKey
   open: string    // e.g. "09:00"
   close: string   // e.g. "22:00"
   closed: boolean // note: field is `closed`, not `isClosed`
@@ -453,16 +464,18 @@ export const protect = async (
 
 ---
 
-## Amenity Key DB Migration
+## DB Migrations
+
+All three DB migrations run from the same script at `backend/server/seeds/migrate_enum_keys.ts`. Each section is idempotent — if a value is already a short key, the mapping lookup returns undefined and no update is made.
 
 ### Rationale
 
-The current `Cafe.amenities` enum stores Chinese strings (e.g. `'电源插座'`). The `User.preferences.learned.favoriteAmenities` entries use the same Chinese strings but are effectively incompatible because of inconsistent handling across the codebase. Migrating to language-neutral short keys:
-- Fixes the enum inconsistency permanently
+`Cafe.amenities`, `Cafe.specialty`, `Cafe.openingHours[].day`, and related user preference fields currently store Chinese or bilingual strings in MongoDB. Migrating all to language-neutral English keys:
 - Enables future languages (Japanese, Korean, etc.) with only a new JSON translation file
-- Makes the TypeScript `AmenityKey` type the single source of truth
+- Makes TypeScript union types the single source of truth for valid values
+- Fixes the amenity enum mismatch bug between Cafe and User models
 
-### Key mapping
+### 1. Amenity key mapping
 
 | Old value | New key |
 |---|---|
@@ -479,22 +492,54 @@ The current `Cafe.amenities` enum stores Chinese strings (e.g. `'电源插座'`)
 | `适合团体聚会` | `group_friendly` |
 | `适合工作 / 办公` | `work_friendly` |
 
-### Migration script
+**Affected fields:**
+- `Cafe.amenities[]` — flat string array
+- `User.preferences.learned.favoriteAmenities[].amenity` — nested field inside `{ amenity, weight }` objects
+- `User.preferences.manual.mustHaveAmenities[]` — flat string array
+- `User.preferences.manual.avoidAmenities[]` — flat string array
 
-A one-time script at `backend/server/seeds/migrate_amenity_keys.ts`:
+### 2. Specialty key mapping
 
-- Loads the mapping above
-- Iterates all `Cafe` documents and bulk-replaces values in `amenities[]`
-- Iterates all `User` documents and updates:
-  - `preferences.learned.favoriteAmenities` — each entry is `{ amenity, weight }`, so the script updates the nested `amenity` field within each array element (not a flat string replacement)
-  - `preferences.manual.mustHaveAmenities` — flat string array, straightforward replacement
-  - `preferences.manual.avoidAmenities` — flat string array, straightforward replacement
-- Logs a summary: X cafes updated, Y users updated, Z errors
-- Is idempotent — if a key is already migrated, the mapping lookup returns undefined and no update is made
+| Old value | New key |
+|---|---|
+| `意式浓缩 Espresso` | `espresso` |
+| `手冲咖啡 Pour Over` | `pour_over` |
+| `冷萃咖啡 Cold Brew` | `cold_brew` |
+| `拉花咖啡 Latte Art` | `latte_art` |
+| `精品咖啡豆 Specialty Beans` | `specialty_beans` |
+| `甜点 Desserts` | `desserts` |
+| `轻食 Light Meals` | `light_meals` |
+
+**Affected fields:**
+- `Cafe.specialty` — single string field
+- `User.preferences.learned.favoriteSpecialties[]` — flat string array
+
+### 3. Day key mapping
+
+| Old value | New key |
+|---|---|
+| `周一` | `monday` |
+| `周二` | `tuesday` |
+| `周三` | `wednesday` |
+| `周四` | `thursday` |
+| `周五` | `friday` |
+| `周六` | `saturday` |
+| `周日` | `sunday` |
+
+**Affected fields:**
+- `Cafe.openingHours[].day` — nested field inside each opening hours entry
+
+### Migration script behaviour
+
+`backend/server/seeds/migrate_enum_keys.ts`:
+- Runs all three mappings in sequence
+- Uses MongoDB bulk write operations for performance
+- Logs a summary per collection: X cafes updated, Y users updated, Z errors
+- Is idempotent — safe to run multiple times
 
 ### i18n translation additions
 
-After the migration, add an `amenities` namespace to the existing translation files:
+Add three new namespaces to the existing translation files:
 
 ```json
 // frontend/src/locales/en/amenities.json
@@ -532,14 +577,66 @@ After the migration, add an `amenities` namespace to the existing translation fi
 }
 ```
 
-Frontend usage after migration: `t('amenities:wifi')` returns the correct label in the active language.
+```json
+// frontend/src/locales/en/specialties.json
+{
+  "espresso": "Espresso",
+  "pour_over": "Pour Over",
+  "cold_brew": "Cold Brew",
+  "latte_art": "Latte Art",
+  "specialty_beans": "Specialty Beans",
+  "desserts": "Desserts",
+  "light_meals": "Light Meals"
+}
+```
+
+```json
+// frontend/src/locales/zh/specialties.json
+{
+  "espresso": "意式浓缩",
+  "pour_over": "手冲咖啡",
+  "cold_brew": "冷萃咖啡",
+  "latte_art": "拉花咖啡",
+  "specialty_beans": "精品咖啡豆",
+  "desserts": "甜点",
+  "light_meals": "轻食"
+}
+```
+
+```json
+// frontend/src/locales/en/days.json
+{
+  "monday": "Monday",
+  "tuesday": "Tuesday",
+  "wednesday": "Wednesday",
+  "thursday": "Thursday",
+  "friday": "Friday",
+  "saturday": "Saturday",
+  "sunday": "Sunday"
+}
+```
+
+```json
+// frontend/src/locales/zh/days.json
+{
+  "monday": "周一",
+  "tuesday": "周二",
+  "wednesday": "周三",
+  "thursday": "周四",
+  "friday": "周五",
+  "saturday": "周六",
+  "sunday": "周日"
+}
+```
+
+Frontend usage: `t('amenities:wifi')`, `t('specialties:pour_over')`, `t('days:monday')` — each returns the correct label in the active language.
 
 ---
 
 ## What Does Not Change
 
 - All business logic in controllers, services, and middleware
-- MongoDB schema shapes (only amenity enum values change)
+- MongoDB schema shapes (only amenity, specialty, and day enum values change)
 - API routes and response formats
 - Auth flow (JWT, refresh token rotation)
 - Rate limiting, security middleware
@@ -569,9 +666,13 @@ Each step is done file by file with explanations for every error encountered.
 - `backend/server/types/user.ts`
 - `backend/server/types/review.ts`
 - `backend/server/types/api.ts`
-- `backend/server/seeds/migrate_amenity_keys.ts`
+- `backend/server/seeds/migrate_enum_keys.ts`
 - `frontend/src/locales/en/amenities.json`
 - `frontend/src/locales/zh/amenities.json`
+- `frontend/src/locales/en/specialties.json`
+- `frontend/src/locales/zh/specialties.json`
+- `frontend/src/locales/en/days.json`
+- `frontend/src/locales/zh/days.json`
 
 ### Renamed files (`.js` → `.ts`)
 - `backend/server/server.js`
