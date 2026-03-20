@@ -5,7 +5,6 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -23,13 +22,6 @@ import userRoutes from './routes/users';
 import cafeRoutes from './routes/cafes';
 import reviewStandaloneRoutes from './routes/reviewsStandalone';
 import recommendationRoutes from './routes/recommendations';
-
-// ============================================
-// ESM兼容性
-// ============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 
 // ============================================
 // Express应用初始化
