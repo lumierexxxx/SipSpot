@@ -43,6 +43,7 @@ Migrate SipSpot from JavaScript (CommonJS) to TypeScript across the full stack. 
 ### `cafe.ts`
 
 ```typescript
+// Language-neutral amenity keys (replaces Chinese strings in DB)
 export type AmenityKey =
   | 'wifi'
   | 'power_outlet'
@@ -60,39 +61,85 @@ export type AmenityKey =
 export type SpecialtyType =
   | '意式浓缩 Espresso'
   | '手冲咖啡 Pour Over'
-  | string // allow future additions
+  | '冷萃咖啡 Cold Brew'
+  | '拉花咖啡 Latte Art'
+  | '精品咖啡豆 Specialty Beans'
+  | '甜点 Desserts'
+  | '轻食 Light Meals'
+
+export type VibeType =
+  | 'Specialty'
+  | 'Cozy Vibes'
+  | 'Work-Friendly'
+  | 'Outdoor'
+  | 'Hidden Gems'
+  | 'New Openings'
+
+export interface ICafeImage {
+  url: string
+  filename: string
+  publicId?: string
+  uploadedAt: string
+  // Virtuals (populated when toJSON virtuals: true)
+  thumbnail?: string
+  cardImage?: string
+}
 
 export interface IOpeningHours {
   day: '周一' | '周二' | '周三' | '周四' | '周五' | '周六' | '周日'
   open: string    // e.g. "09:00"
   close: string   // e.g. "22:00"
-  isClosed: boolean
+  closed: boolean // note: field is `closed`, not `isClosed`
 }
 
-export interface ILocation {
+export interface IGeometry {
   type: 'Point'
   coordinates: [number, number]  // [longitude, latitude]
+}
+
+export interface IAiSummary {
+  features: string
+  atmosphere: string
+  highlights: string[]
+  suitableFor: string[]
+  generatedAt?: string
+  needsUpdate: boolean
+  version: number
 }
 
 export interface ICafe {
   _id: string
   name: string
   description: string
-  images: string[]
-  location: ILocation
+  images: ICafeImage[]
+  geometry: IGeometry           // GeoJSON field — NOT `location`
   address: string
   city: string
   price: 1 | 2 | 3 | 4
   amenities: AmenityKey[]
-  specialties: SpecialtyType[]
+  specialty: SpecialtyType      // singular string — NOT an array
+  vibe?: VibeType
   openingHours: IOpeningHours[]
+  phoneNumber?: string
   rating: number
   reviewCount: number
-  author: string | IUser
   reviews: string[] | IReview[]
-  aiSummary?: string
+  aiSummary?: IAiSummary
+  embedding?: number[]          // select: false — only present when explicitly selected
+  embeddingUpdatedAt?: string | null
+  author: string | IUser        // populated or ObjectId string; aliased as `owner`
+  isActive: boolean
+  isVerified: boolean
+  viewCount: number
+  favoriteCount: number
+  tags: string[]
   createdAt: string
   updatedAt: string
+  // Virtuals
+  owner?: string | IUser        // alias of author
+  priceDisplay?: string
+  ratingCategory?: string
+  isOpen?: boolean | null
 }
 ```
 
@@ -101,19 +148,42 @@ export interface ICafe {
 ```typescript
 import { AmenityKey, SpecialtyType } from './cafe'
 
+export interface ILearnedAmenity {
+  amenity: AmenityKey   // weighted preference entry — NOT a flat string array
+  weight: number        // 0–1
+}
+
+export interface IPriceRange {
+  min: number           // 1–4
+  max: number           // 1–4
+}
+
+export interface IVisitedEntry {
+  cafe: string          // ObjectId ref to Cafe
+  visitedAt: string
+}
+
+export interface IPreferenceHistory {
+  cafeId: string
+  weight: number        // favorite=2, high-rating review=1
+  addedAt: string
+}
+
 export interface IUserPreferences {
   learned: {
-    favoriteAmenities: AmenityKey[]        // uses short keys, not Chinese strings
+    favoriteAmenities: ILearnedAmenity[]  // weighted objects, not flat array
     favoriteSpecialties: SpecialtyType[]
-    preferredPriceRange: number[]
-    visitCount: number
+    priceRange: IPriceRange               // {min, max} — NOT number[]
+    atmospherePreferences: string[]
   }
   manual: {
-    preferredAmenities: AmenityKey[]
-    preferredSpecialties: SpecialtyType[]
-    preferredPriceRange: number[]
+    dietaryRestrictions: string[]
+    mustHaveAmenities: AmenityKey[]
+    avoidAmenities: string[]
     preferredCities: string[]
   }
+  lastUpdated: string
+  confidence: number  // 0–1, based on volume of behavioral data
 }
 
 export interface IUser {
@@ -124,10 +194,20 @@ export interface IUser {
   bio?: string
   role: 'user' | 'admin'
   favorites: string[]
-  visited: string[]
+  visited: IVisitedEntry[]              // array of {cafe, visitedAt} objects
   preferences: IUserPreferences
-  isEmailVerified: boolean
+  // Embedding fields (select: false — only present when explicitly selected)
+  preferenceEmbedding?: number[]
+  preferenceEmbeddingUpdatedAt?: string | null
+  preferenceHistory?: IPreferenceHistory[]
   isActive: boolean
+  isEmailVerified: boolean
+  lastLogin?: string
+  // Reset / verification tokens (select: false in practice via controller logic)
+  resetPasswordToken?: string
+  resetPasswordExpire?: string
+  emailVerificationToken?: string
+  emailVerificationExpire?: string
   createdAt: string
   updatedAt: string
 }
@@ -139,34 +219,71 @@ export interface IUser {
 import { ICafe } from './cafe'
 import { IUser } from './user'
 
-export interface IMultiDimRating {
-  taste?: number
-  price?: number
-  environment?: number
+export interface IMultiDimRatings {
+  taste: number          // required, 1–5
+  price: number          // required, 1–5
+  environment: number    // required, 1–5
+  service: number        // required, 1–5
+  workspace: number      // required, 1–5
+  averageRating: number  // auto-calculated on pre-save
+}
+
+export interface IDetailedRatings {
+  coffee?: number        // optional, 1–5
+  ambience?: number
   service?: number
-  workspace?: number
+  value?: number
 }
 
 export interface IAiAnalysis {
-  sentiment?: 'positive' | 'negative' | 'neutral'
-  keywords?: string[]
+  sentiment: 'positive' | 'negative' | 'neutral'
+  keywords: string[]
   summary?: string
+  confidence: number     // 0–1
+  analyzedAt: string
+}
+
+export interface IHelpfulVote {
+  user: string           // ObjectId ref to User
+  vote: 'helpful' | 'not-helpful'
+}
+
+export interface IOwnerResponse {
+  content: string
+  respondedAt: string
+  respondedBy: string    // ObjectId ref to User
 }
 
 export interface IReview {
   _id: string
   content: string
-  rating: number           // overall, 0.5 increments
-  dimensions: IMultiDimRating
+  rating: number              // overall, 0.5 increments
+  ratings: IMultiDimRatings   // field is `ratings` — NOT `dimensions`
+  detailedRatings?: IDetailedRatings
   cafe: string | ICafe
   author: string | IUser
-  images: string[]
+  images: IReviewImage[]
   aiAnalysis?: IAiAnalysis
-  helpful: string[]
-  reported: boolean
-  response?: string
+  helpfulCount: number
+  notHelpfulCount: number
+  helpfulVotes: IHelpfulVote[]
+  isEdited: boolean
+  editedAt?: string
+  isReported: boolean         // field is `isReported` — NOT `reported`
+  reportCount: number
+  isVerifiedVisit: boolean
+  visitDate?: string
+  ownerResponse?: IOwnerResponse  // field is `ownerResponse` — NOT `response`
   createdAt: string
   updatedAt: string
+}
+
+export interface IReviewImage {
+  url: string
+  filename: string
+  publicId?: string
+  uploadedAt: string
+  thumbnail?: string  // virtual
 }
 ```
 
@@ -176,10 +293,13 @@ export interface IReview {
 import { Request } from 'express'
 import { IUser } from './user'
 
+// Extends Express Request to include the authenticated user
+// (attached by the protect middleware)
 export interface AuthRequest extends Request {
   user?: IUser
 }
 
+// Standard API response shape — matches responseHelper.js
 export interface ApiResponse<T = unknown> {
   success: boolean
   message?: string
@@ -220,12 +340,16 @@ export * from './api'
     "@types/jsonwebtoken": "^9.0.6",
     "@types/cors": "^2.8.17",
     "@types/multer": "^1.4.11",
-    "@types/nodemailer": "^6.4.14"
+    "@types/nodemailer": "^6.4.14",
+    "@types/cookie-parser": "^1.4.7"
   }
 }
 ```
 
-Mongoose ships its own types — no `@types/mongoose` needed.
+Notes:
+- Mongoose v8 ships its own types — no `@types/mongoose` needed
+- `helmet`, `express-rate-limit`, `express-mongo-sanitize` all ship their own types
+- `cookie-parser` does not ship its own types — `@types/cookie-parser` is required
 
 ### Dev script changes (`package.json`)
 
@@ -248,6 +372,7 @@ Mongoose ships its own types — no `@types/mongoose` needed.
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./server",
     "esModuleInterop": true,
@@ -263,23 +388,30 @@ Mongoose ships its own types — no `@types/mongoose` needed.
 
 **Loose mode rationale:** `noImplicitAny` and `strictNullChecks` are disabled for the migration. They will be enabled in a separate tightening pass after the codebase is fully compiling — one file at a time, with explanations for each error.
 
+**`moduleResolution: "node"`** is explicit to ensure `@types/*` packages resolve correctly.
+
 ### File renames
 
 Every file in `backend/server/` is renamed `.js` → `.ts`. No exceptions. The renamed files are the only change at the file system level.
 
-### Mongoose model typing pattern
+### Mongoose model typing pattern (Mongoose v8)
+
+The project uses Mongoose v8. The correct pattern passes the plain interface to `Schema<T>` and `model<T>()` — **not** `T & Document` (that is the deprecated Mongoose v5 pattern).
 
 ```typescript
-import { Schema, model, Document } from 'mongoose'
+import { Schema, model, HydratedDocument } from 'mongoose'
 import { ICafe } from '../types'
 
-type CafeDocument = ICafe & Document
-
-const cafeSchema = new Schema<CafeDocument>({
+// Schema receives the plain interface
+const cafeSchema = new Schema<ICafe>({
   // schema definition unchanged
 })
 
-export default model<CafeDocument>('Cafe', cafeSchema)
+// Model is typed with the plain interface
+export default model<ICafe>('Cafe', cafeSchema)
+
+// When you need to type a specific document instance (e.g. in methods):
+// type CafeDoc = HydratedDocument<ICafe>
 ```
 
 This pattern is applied to all three models: `Cafe`, `User`, `Review`.
@@ -290,8 +422,12 @@ This pattern is applied to all three models: `Cafe`, `User`, `Review`.
 import { Response } from 'express'
 import { AuthRequest, ApiResponse, IUser } from '../types'
 
+// @desc   Get my profile
+// @route  GET /api/users/me
+// @access Private
 const getMe = asyncHandler(
   async (req: AuthRequest, res: Response<ApiResponse<IUser>>) => {
+    // req.user is now typed as IUser | undefined — full autocomplete
     const user = await User.findById(req.user?._id)
     res.json({ success: true, data: user })
   }
@@ -321,13 +457,14 @@ export const protect = async (
 
 ### Rationale
 
-The current `Cafe.amenities` enum stores Chinese strings (e.g. `'电源插座'`). The `User.preferences.learned.favoriteAmenities` enum uses English strings (e.g. `'Power Outlets'`). This mismatch means the recommendation engine can never match user preferences to cafe amenities.
-
-Migrating to language-neutral short keys fixes this permanently and enables future languages (Japanese, Korean, etc.) with no further DB changes — only a new i18n JSON file.
+The current `Cafe.amenities` enum stores Chinese strings (e.g. `'电源插座'`). The `User.preferences.learned.favoriteAmenities` entries use the same Chinese strings but are effectively incompatible because of inconsistent handling across the codebase. Migrating to language-neutral short keys:
+- Fixes the enum inconsistency permanently
+- Enables future languages (Japanese, Korean, etc.) with only a new JSON translation file
+- Makes the TypeScript `AmenityKey` type the single source of truth
 
 ### Key mapping
 
-| Old value (Chinese/mixed) | New key |
+| Old value | New key |
 |---|---|
 | `WiFi` | `wifi` |
 | `电源插座` | `power_outlet` |
@@ -345,15 +482,19 @@ Migrating to language-neutral short keys fixes this permanently and enables futu
 ### Migration script
 
 A one-time script at `backend/server/seeds/migrate_amenity_keys.ts`:
+
 - Loads the mapping above
-- Iterates all Cafe documents and replaces amenity values
-- Iterates all User documents and replaces preference amenity values
-- Logs a summary (X cafes updated, Y users updated)
-- Is idempotent — safe to run multiple times
+- Iterates all `Cafe` documents and bulk-replaces values in `amenities[]`
+- Iterates all `User` documents and updates:
+  - `preferences.learned.favoriteAmenities` — each entry is `{ amenity, weight }`, so the script updates the nested `amenity` field within each array element (not a flat string replacement)
+  - `preferences.manual.mustHaveAmenities` — flat string array, straightforward replacement
+  - `preferences.manual.avoidAmenities` — flat string array, straightforward replacement
+- Logs a summary: X cafes updated, Y users updated, Z errors
+- Is idempotent — if a key is already migrated, the mapping lookup returns undefined and no update is made
 
 ### i18n translation additions
 
-After the migration, add an `amenities` namespace to existing translation files:
+After the migration, add an `amenities` namespace to the existing translation files:
 
 ```json
 // frontend/src/locales/en/amenities.json
@@ -391,6 +532,8 @@ After the migration, add an `amenities` namespace to existing translation files:
 }
 ```
 
+Frontend usage after migration: `t('amenities:wifi')` returns the correct label in the active language.
+
 ---
 
 ## What Does Not Change
@@ -398,7 +541,7 @@ After the migration, add an `amenities` namespace to existing translation files:
 - All business logic in controllers, services, and middleware
 - MongoDB schema shapes (only amenity enum values change)
 - API routes and response formats
-- Auth flow (JWT in cookies, refresh token rotation)
+- Auth flow (JWT, refresh token rotation)
 - Rate limiting, security middleware
 - Cloudinary, email service, AI service logic
 - Frontend (Phase 3 spec)
@@ -457,3 +600,4 @@ Each step is done file by file with explanations for every error encountered.
 - `backend/server/utils/asyncHandler.js`
 - `backend/server/utils/validation.js`
 - `backend/server/utils/responseHelper.js`
+- `backend/server/utils/geocoding.js`
