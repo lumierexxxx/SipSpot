@@ -5,42 +5,44 @@
 // 已移除：收藏功能（→ userController）
 // ============================================
 
-const Cafe = require('../models/cafe');
-const ExpressError = require('../utils/ExpressError');
-const embeddingService = require('../services/embeddingService');
+import { Response, NextFunction } from 'express';
+import Cafe from '../models/cafe';
+import ExpressError from '../utils/ExpressError';
+import * as embeddingService from '../services/embeddingService';
+import { AuthRequest } from '../types';
 
 /**
  * @desc    Get all cafes with filtering and pagination
  * @route   GET /api/cafes
  * @access  Public
  */
-exports.getCafes = async (req, res, next) => {
+export const getCafes = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const {
             city, amenities, minRating, maxPrice, search, vibe,
             page = 1, limit = 20, sort = '-rating'
         } = req.query;
 
-        let query = { isActive: true };
+        let query: Record<string, any> = { isActive: true };
 
-        if (city) query.city = new RegExp(city, 'i');
+        if (city) query.city = new RegExp(city as string, 'i');
         if (vibe) query.vibe = vibe;
         if (amenities) {
-            const amenitiesArray = Array.isArray(amenities) ? amenities : amenities.split(',');
+            const amenitiesArray = Array.isArray(amenities) ? amenities : (amenities as string).split(',');
             query.amenities = { $all: amenitiesArray };
         }
-        if (minRating) query.rating = { $gte: parseFloat(minRating) };
-        if (maxPrice) query.price = { $lte: parseInt(maxPrice) };
+        if (minRating) query.rating = { $gte: parseFloat(minRating as string) };
+        if (maxPrice) query.price = { $lte: parseInt(maxPrice as string) };
         if (search) query.$text = { $search: search };
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
         const cafes = await Cafe.find(query)
             .populate('author', 'username avatar')
             .select('-reviews')
-            .sort(sort)
+            .sort(sort as string)
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(parseInt(limit as string));
 
         const total = await Cafe.countDocuments(query);
 
@@ -48,8 +50,8 @@ exports.getCafes = async (req, res, next) => {
             success: true,
             count: cafes.length,
             total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            page: parseInt(page as string),
+            pages: Math.ceil(total / parseInt(limit as string)),
             data: cafes
         });
     } catch (error) {
@@ -62,7 +64,7 @@ exports.getCafes = async (req, res, next) => {
  * @route   GET /api/cafes/nearby
  * @access  Public
  */
-exports.getNearby = async (req, res, next) => {
+export const getNearby = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { lng, lat, distance = 5000, limit = 20 } = req.query;
 
@@ -70,8 +72,8 @@ exports.getNearby = async (req, res, next) => {
             return next(new ExpressError('Please provide longitude and latitude', 400));
         }
 
-        const longitude = parseFloat(lng);
-        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lng as string);
+        const latitude = parseFloat(lat as string);
 
         if (isNaN(longitude) || isNaN(latitude)) {
             return next(new ExpressError('Invalid coordinates', 400));
@@ -81,13 +83,13 @@ exports.getNearby = async (req, res, next) => {
             return next(new ExpressError('Coordinates out of range', 400));
         }
 
-        const cafes = await Cafe.findNearby(longitude, latitude, parseInt(distance), parseInt(limit));
+        const cafes = await (Cafe as any).findNearby(longitude, latitude, parseInt(distance as string), parseInt(limit as string));
 
         res.status(200).json({
             success: true,
             count: cafes.length,
             searchCenter: { longitude, latitude },
-            searchRadius: parseInt(distance),
+            searchRadius: parseInt(distance as string),
             data: cafes
         });
     } catch (error) {
@@ -100,7 +102,7 @@ exports.getNearby = async (req, res, next) => {
  * @route   GET /api/cafes/:id
  * @access  Public
  */
-exports.getCafe = async (req, res, next) => {
+export const getCafe = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const cafe = await Cafe.findById(req.params.id)
             .populate('author', 'username avatar bio')
@@ -108,14 +110,14 @@ exports.getCafe = async (req, res, next) => {
                 path: 'reviews',
                 populate: { path: 'author', select: 'username avatar' },
                 options: { sort: { createdAt: -1 } }
-            });
+            }) as any;
 
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
-        cafe.incrementViewCount().catch(err => console.error('Error incrementing view count:', err));
+        cafe.incrementViewCount().catch((err: Error) => console.error('Error incrementing view count:', err));
 
         res.status(200).json({ success: true, data: cafe });
-    } catch (error) {
+    } catch (error: any) {
         if (error.name === 'CastError') return next(new ExpressError('Invalid cafe ID', 400));
         next(error);
     }
@@ -126,19 +128,19 @@ exports.getCafe = async (req, res, next) => {
  * @route   POST /api/cafes
  * @access  Private
  */
-exports.createCafe = async (req, res, next) => {
+export const createCafe = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         req.body.author = req.user.id;
 
-        if (req.files && req.files.length > 0) {
-            req.body.images = req.files.map(file => ({
+        if (req.files && (req.files as any[]).length > 0) {
+            req.body.images = (req.files as any[]).map(file => ({
                 url: file.path,
                 filename: file.filename,
                 publicId: file.filename
             }));
         }
 
-        const cafe = await Cafe.create(req.body);
+        const cafe = await Cafe.create(req.body) as any;
         await cafe.populate('author', 'username avatar');
 
         res.status(201).json({
@@ -150,15 +152,15 @@ exports.createCafe = async (req, res, next) => {
         // 异步生成 embedding，不阻塞响应
         process.nextTick(async () => {
             try {
-                if (!embeddingService.isReady()) return;
-                const text = embeddingService.buildCafeText(cafe);
-                const embedding = await embeddingService.generateEmbedding(text, 'passage');
+                if (!(embeddingService as any).isReady()) return;
+                const text = (embeddingService as any).buildCafeText(cafe);
+                const embedding = await (embeddingService as any).generateEmbedding(text, 'passage');
                 await Cafe.findByIdAndUpdate(cafe._id, {
                     embedding,
                     embeddingUpdatedAt: new Date()
                 });
                 console.log(`✅ Cafe embedding 已生成: ${cafe.name}`);
-            } catch (e) {
+            } catch (e: any) {
                 console.error(`❌ Cafe embedding 生成失败 (${cafe.name}):`, e.message);
             }
         });
@@ -172,9 +174,9 @@ exports.createCafe = async (req, res, next) => {
  * @route   PUT /api/cafes/:id
  * @access  Private (Owner or Admin)
  */
-exports.updateCafe = async (req, res, next) => {
+export const updateCafe = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        let cafe = await Cafe.findById(req.params.id);
+        let cafe = await Cafe.findById(req.params.id) as any;
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
         if (cafe.author.toString() !== req.user.id && req.user.role !== 'admin') {
@@ -187,7 +189,7 @@ exports.updateCafe = async (req, res, next) => {
         cafe = await Cafe.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
-        }).populate('author', 'username avatar');
+        }).populate('author', 'username avatar') as any;
 
         res.status(200).json({
             success: true,
@@ -198,15 +200,15 @@ exports.updateCafe = async (req, res, next) => {
         // 更新后重新生成 embedding
         process.nextTick(async () => {
             try {
-                if (!embeddingService.isReady()) return;
-                const text = embeddingService.buildCafeText(cafe);
-                const embedding = await embeddingService.generateEmbedding(text, 'passage');
+                if (!(embeddingService as any).isReady()) return;
+                const text = (embeddingService as any).buildCafeText(cafe);
+                const embedding = await (embeddingService as any).generateEmbedding(text, 'passage');
                 await Cafe.findByIdAndUpdate(cafe._id, {
                     embedding,
                     embeddingUpdatedAt: new Date()
                 });
                 console.log(`✅ Cafe embedding 已更新: ${cafe.name}`);
-            } catch (e) {
+            } catch (e: any) {
                 console.error(`❌ Cafe embedding 更新失败:`, e.message);
             }
         });
@@ -220,9 +222,9 @@ exports.updateCafe = async (req, res, next) => {
  * @route   DELETE /api/cafes/:id
  * @access  Private (Owner or Admin)
  */
-exports.deleteCafe = async (req, res, next) => {
+export const deleteCafe = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const cafe = await Cafe.findById(req.params.id);
+        const cafe = await Cafe.findById(req.params.id) as any;
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
         if (cafe.author.toString() !== req.user.id && req.user.role !== 'admin') {
@@ -253,10 +255,10 @@ exports.deleteCafe = async (req, res, next) => {
  * @route   GET /api/cafes/top/rated
  * @access  Public
  */
-exports.getTopRated = async (req, res, next) => {
+export const getTopRated = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { limit = 10, city } = req.query;
-        const cafes = await Cafe.getTopRated(parseInt(limit), city);
+        const cafes = await (Cafe as any).getTopRated(parseInt(limit as string), city);
 
         res.status(200).json({
             success: true,
@@ -273,21 +275,21 @@ exports.getTopRated = async (req, res, next) => {
  * @route   GET /api/cafes/search
  * @access  Public
  */
-exports.searchCafes = async (req, res, next) => {
+export const searchCafes = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { q, city, minRating, maxPrice, amenities, limit = 20 } = req.query;
 
         if (!q) return next(new ExpressError('Please provide search query', 400));
 
-        const options = {};
+        const options: Record<string, any> = {};
         if (city) options.city = city;
-        if (minRating) options.minRating = parseFloat(minRating);
-        if (maxPrice) options.maxPrice = parseInt(maxPrice);
+        if (minRating) options.minRating = parseFloat(minRating as string);
+        if (maxPrice) options.maxPrice = parseInt(maxPrice as string);
         if (amenities) {
-            options.amenities = Array.isArray(amenities) ? amenities : amenities.split(',');
+            options.amenities = Array.isArray(amenities) ? amenities : (amenities as string).split(',');
         }
 
-        const cafes = await Cafe.searchCafes(q, options).limit(parseInt(limit));
+        const cafes = await (Cafe as any).searchCafes(q, options).limit(parseInt(limit as string));
 
         res.status(200).json({
             success: true,
@@ -305,12 +307,12 @@ exports.searchCafes = async (req, res, next) => {
  * @route   GET /api/cafes/amenities/:amenity
  * @access  Public
  */
-exports.getCafesByAmenities = async (req, res, next) => {
+export const getCafesByAmenities = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const amenities = req.params.amenity.split(',');
+        const amenities = (req.params.amenity as string).split(',');
         const { city, limit = 20 } = req.query;
 
-        const cafes = await Cafe.findByAmenities(amenities, city).limit(parseInt(limit));
+        const cafes = await (Cafe as any).findByAmenities(amenities, city).limit(parseInt(limit as string));
 
         res.status(200).json({
             success: true,
@@ -328,22 +330,22 @@ exports.getCafesByAmenities = async (req, res, next) => {
  * @route   GET /api/cafes/:id/stats
  * @access  Public
  */
-exports.getCafeStats = async (req, res, next) => {
+export const getCafeStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const cafe = await Cafe.findById(req.params.id)
-            .populate('reviews', 'rating createdAt');
+            .populate('reviews', 'rating createdAt') as any;
 
         if (!cafe) return next(new ExpressError('Cafe not found', 404));
 
-        const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-        cafe.reviews.forEach(review => {
+        const ratingDistribution: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        cafe.reviews.forEach((review: any) => {
             const rating = Math.floor(review.rating);
             ratingDistribution[rating]++;
         });
 
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        const recentReviews = cafe.reviews.filter(r => r.createdAt >= sixMonthsAgo);
+        const recentReviews = cafe.reviews.filter((r: any) => r.createdAt >= sixMonthsAgo);
 
         res.status(200).json({
             success: true,

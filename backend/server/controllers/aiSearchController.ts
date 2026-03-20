@@ -3,19 +3,21 @@
 // AI智能搜索控制器 - 解析自然语言并返回结果
 // ============================================
 
-const Cafe = require('../models/cafe');
-const asyncHandler = require('../utils/asyncHandler');
-const ExpressError = require('../utils/ExpressError');
-const embeddingService = require('../services/embeddingService');
-const vectorService = require('../services/vectorService');
-const aiService = require('../services/aiService');
+import { Response, NextFunction } from 'express';
+import Cafe from '../models/cafe';
+import asyncHandler from '../utils/asyncHandler';
+import ExpressError from '../utils/ExpressError';
+import * as embeddingService from '../services/embeddingService';
+import * as vectorService from '../services/vectorService';
+import * as aiService from '../services/aiService';
+import { AuthRequest } from '../types';
 
 /**
  * @desc    AI智能搜索咖啡馆
  * @route   POST /api/cafes/ai-search
  * @access  Public
  */
-exports.aiSearch = asyncHandler(async (req, res, next) => {
+export const aiSearch = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { query } = req.body;
 
     if (!query || !query.trim()) {
@@ -25,14 +27,14 @@ exports.aiSearch = asyncHandler(async (req, res, next) => {
     console.log('🤖 AI搜索查询:', query);
 
     // ── 语义搜索路径 ─────────────────────────────────────
-    if (embeddingService.isReady()) {
+    if ((embeddingService as any).isReady()) {
         // 1. 生成查询向量
-        const queryEmb = await embeddingService.generateEmbedding(query.trim(), 'query');
+        const queryEmb = await (embeddingService as any).generateEmbedding(query.trim(), 'query');
 
         // 2. 提取硬过滤条件（只有城市作为硬过滤）
         const cities = ['上海', '北京', '广州', '深圳', '杭州', '成都'];
         const detectedCity = cities.find(c => query.includes(c));
-        const dbQuery = {
+        const dbQuery: Record<string, any> = {
             isActive: true,
             embeddingUpdatedAt: { $exists: true, $ne: null },
             ...(detectedCity && { city: detectedCity })
@@ -48,8 +50,8 @@ exports.aiSearch = asyncHandler(async (req, res, next) => {
             .lean();
 
         // 5. 余弦排序
-        const ranked = vectorService.rankCafes(queryEmb, cafes, { amenityBoost, topK: 10 });
-        const results = ranked.map(r => r.cafe);
+        const ranked = (vectorService as any).rankCafes(queryEmb, cafes, { amenityBoost, topK: 10 });
+        const results = ranked.map((r: any) => r.cafe);
 
         console.log(`✅ 语义搜索返回 ${results.length} 个结果`);
 
@@ -93,11 +95,11 @@ exports.aiSearch = asyncHandler(async (req, res, next) => {
  * @route   POST /api/cafes/ai-search/explain
  * @access  Public
  */
-exports.explainSearch = asyncHandler(async (req, res, next) => {
+export const explainSearch = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { query, cafeNames } = req.body;
     // Input validated by explainSearchSchema middleware before reaching here
 
-    const explanation = await aiService.generateSearchExplanation(query, cafeNames);
+    const explanation = await (aiService as any).generateSearchExplanation(query, cafeNames);
 
     res.status(200).json({
         success: true,
@@ -109,9 +111,9 @@ exports.explainSearch = asyncHandler(async (req, res, next) => {
  * 从查询文本中检测设施意图，返回中文设施名称数组（用于 amenityBoost）
  * 注意：必须使用中文枚举值以匹配 Cafe.amenities
  */
-function detectAmenityIntent(query) {
+function detectAmenityIntent(query: string): string[] {
     const lowerQuery = query.toLowerCase();
-    const boost = [];
+    const boost: string[] = [];
 
     if (lowerQuery.includes('wifi') || lowerQuery.includes('网络')) boost.push('WiFi');
     if (lowerQuery.includes('插座') || lowerQuery.includes('电源')) boost.push('电源插座');
@@ -128,9 +130,9 @@ function detectAmenityIntent(query) {
 /**
  * 解析自然语言查询
  */
-function parseNaturalLanguageQuery(query) {
+function parseNaturalLanguageQuery(query: string): Record<string, any> {
     const lowerQuery = query.toLowerCase();
-    const params = {
+    const params: Record<string, any> = {
         filters: {},
         sort: null,
         limit: 20,
@@ -150,7 +152,7 @@ function parseNaturalLanguageQuery(query) {
         if (match) {
             const distance = parseInt(match[1]);
             params.distance = distance * 1000; // 转换为米
-            
+
             // 这里需要用户的当前位置
             // 如果请求中有位置信息，使用它
             // 否则使用默认位置（上海人民广场）
@@ -168,7 +170,7 @@ function parseNaturalLanguageQuery(query) {
         params.filters.rating = { $gte: 4.0 };
         params.sort = { rating: -1, reviewCount: -1 };
     }
-    
+
     const ratingMatch = query.match(/评分(\d+\.?\d*)分?以上/);
     if (ratingMatch) {
         params.filters.rating = { $gte: parseFloat(ratingMatch[1]) };
@@ -179,7 +181,7 @@ function parseNaturalLanguageQuery(query) {
     if (lowerQuery.includes('便宜') || lowerQuery.includes('实惠') || lowerQuery.includes('平价') || lowerQuery.includes('性价比')) {
         params.filters.price = { $lte: 2 };
     }
-    
+
     if (lowerQuery.includes('高端') || lowerQuery.includes('豪华')) {
         params.filters.price = { $gte: 3 };
     }
@@ -193,28 +195,28 @@ function parseNaturalLanguageQuery(query) {
     }
 
     // 4. 解析设施需求
-    const amenitiesList = [];
-    
+    const amenitiesList: string[] = [];
+
     if (lowerQuery.includes('wifi') || lowerQuery.includes('网络')) {
         amenitiesList.push('WiFi');
     }
-    
+
     if (lowerQuery.includes('插座') || lowerQuery.includes('电源')) {
         amenitiesList.push('电源插座');
     }
-    
+
     if (lowerQuery.includes('安静') || lowerQuery.includes('quiet')) {
         amenitiesList.push('安静环境');
     }
-    
+
     if (lowerQuery.includes('户外') || lowerQuery.includes('露台') || lowerQuery.includes('outdoor')) {
         amenitiesList.push('户外座位');
     }
-    
+
     if (lowerQuery.includes('宠物') || lowerQuery.includes('pet')) {
         amenitiesList.push('宠物友好');
     }
-    
+
     if (lowerQuery.includes('办公') || lowerQuery.includes('工作') || lowerQuery.includes('work')) {
         amenitiesList.push('适合工作 / 办公', '适合使用笔记本电脑', 'WiFi', '电源插座');
     }
@@ -268,8 +270,8 @@ function parseNaturalLanguageQuery(query) {
 /**
  * 构建MongoDB查询对象
  */
-function buildMongoQuery(params) {
-    const query = {
+function buildMongoQuery(params: Record<string, any>): Record<string, any> {
+    const query: Record<string, any> = {
         isActive: true,
         ...params.filters
     };
@@ -290,8 +292,8 @@ function buildMongoQuery(params) {
 /**
  * 生成AI回复说明
  */
-function generateExplanation(params, count) {
-    const parts = [];
+function generateExplanation(params: Record<string, any>, count: number): string {
+    const parts: string[] = [];
 
     if (count === 0) {
         return '很抱歉，没有找到完全符合你要求的咖啡馆。试试调整一下条件吧！';
@@ -299,7 +301,7 @@ function generateExplanation(params, count) {
 
     parts.push(`我为你找到了 ${count} 家咖啡馆`);
 
-    const conditions = [];
+    const conditions: string[] = [];
 
     if (params.distance) {
         conditions.push(`在${params.distance / 1000}公里范围内`);
@@ -338,7 +340,7 @@ function generateExplanation(params, count) {
     }
 
     if (params.filters.specialty) {
-        const specialtyNames = {
+        const specialtyNames: Record<string, string> = {
             '手冲咖啡 Pour Over': '主打手冲咖啡',
             '拉花咖啡 Latte Art': '拉花艺术',
             '精品咖啡豆 Specialty Beans': '精品咖啡豆'
@@ -362,7 +364,7 @@ function generateExplanation(params, count) {
 /**
  * 计算两点之间的距离（米）
  */
-function calculateDistance(lat1, lon1, lat2, lon2) {
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371000; // 地球半径（米）
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
@@ -374,6 +376,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return Math.round(R * c);
 }
 
-function toRad(degrees) {
+function toRad(degrees: number): number {
     return degrees * (Math.PI / 180);
 }
