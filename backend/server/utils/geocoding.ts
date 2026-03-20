@@ -3,7 +3,7 @@
 // 使用 Google Maps Geocoding API
 // ============================================
 
-const axios = require('axios');
+import axios from 'axios'
 
 // Google Maps API 配置
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -19,7 +19,7 @@ if (!GOOGLE_MAPS_API_KEY) {
  * @param {string} address - 地址字符串
  * @returns {Object} { longitude, latitude, formattedAddress, city, country, state, postcode }
  */
-exports.geocode = async (address) => {
+export const geocode = async (address: string) => {
     try {
         if (!GOOGLE_MAPS_API_KEY) {
             throw new Error('Google Maps API Key 未配置');
@@ -32,20 +32,20 @@ exports.geocode = async (address) => {
                 language: 'zh-CN' // 中文结果
             }
         });
-        
+
         if (response.data.status === 'OK' && response.data.results.length > 0) {
             const result = response.data.results[0];
             const location = result.geometry.location;
             const addressComponents = result.address_components;
-            
+
             // 解析地址组件
-            const getAddressComponent = (types) => {
-                const component = addressComponents.find(comp => 
-                    types.some(type => comp.types.includes(type))
+            const getAddressComponent = (types: string[]) => {
+                const component = addressComponents.find((comp: any) =>
+                    types.some((type: string) => comp.types.includes(type))
                 );
                 return component ? component.long_name : '';
             };
-            
+
             return {
                 longitude: location.lng,
                 latitude: location.lat,
@@ -57,7 +57,7 @@ exports.geocode = async (address) => {
                 placeId: result.place_id // Google Places ID，可用于获取更多详情
             };
         }
-        
+
         // 处理不同的错误状态
         if (response.data.status === 'ZERO_RESULTS') {
             throw new Error('未找到该地址的坐标');
@@ -68,9 +68,9 @@ exports.geocode = async (address) => {
         } else if (response.data.status === 'INVALID_REQUEST') {
             throw new Error('无效的地址');
         }
-        
+
         throw new Error('地址解析失败');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Geocoding error:', error.message);
         throw error;
     }
@@ -82,7 +82,7 @@ exports.geocode = async (address) => {
  * @param {number} latitude - 纬度
  * @returns {Object} { address, city, country, state, postcode }
  */
-exports.reverseGeocode = async (longitude, latitude) => {
+export const reverseGeocode = async (longitude: number, latitude: number) => {
     try {
         if (!GOOGLE_MAPS_API_KEY) {
             throw new Error('Google Maps API Key 未配置');
@@ -96,19 +96,19 @@ exports.reverseGeocode = async (longitude, latitude) => {
                 result_type: 'street_address|route|locality' // 优先返回街道地址
             }
         });
-        
+
         if (response.data.status === 'OK' && response.data.results.length > 0) {
             const result = response.data.results[0];
             const addressComponents = result.address_components;
-            
+
             // 解析地址组件
-            const getAddressComponent = (types) => {
-                const component = addressComponents.find(comp => 
-                    types.some(type => comp.types.includes(type))
+            const getAddressComponent = (types: string[]) => {
+                const component = addressComponents.find((comp: any) =>
+                    types.some((type: string) => comp.types.includes(type))
                 );
                 return component ? component.long_name : '';
             };
-            
+
             return {
                 address: result.formatted_address,
                 city: getAddressComponent(['locality', 'administrative_area_level_2']),
@@ -118,15 +118,15 @@ exports.reverseGeocode = async (longitude, latitude) => {
                 placeId: result.place_id
             };
         }
-        
+
         if (response.data.status === 'ZERO_RESULTS') {
             throw new Error('未找到该坐标的地址');
         } else if (response.data.status === 'OVER_QUERY_LIMIT') {
             throw new Error('API 配额已用完，请稍后再试');
         }
-        
+
         throw new Error('坐标解析失败');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Reverse geocoding error:', error.message);
         throw error;
     }
@@ -141,19 +141,19 @@ exports.reverseGeocode = async (longitude, latitude) => {
  * @param {number} lon2 - 第二个点的经度
  * @returns {number} 距离（米）
  */
-exports.calculateDistance = (lat1, lon1, lat2, lon2) => {
+export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3; // 地球半径（米）
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
-    
+
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
               Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     return R * c; // 返回距离（米）
 };
 
@@ -162,7 +162,7 @@ exports.calculateDistance = (lat1, lon1, lat2, lon2) => {
  * @param {number} meters - 距离（米）
  * @returns {string} 格式化的距离字符串
  */
-exports.formatDistance = (meters) => {
+export const formatDistance = (meters: number) => {
     if (meters < 1000) {
         return `${Math.round(meters)}米`;
     }
@@ -175,7 +175,7 @@ exports.formatDistance = (meters) => {
  * @param {number} latitude - 纬度
  * @returns {boolean}
  */
-exports.isValidCoordinates = (longitude, latitude) => {
+export const isValidCoordinates = (longitude: number, latitude: number) => {
     return (
         typeof longitude === 'number' &&
         typeof latitude === 'number' &&
@@ -191,7 +191,7 @@ exports.isValidCoordinates = (longitude, latitude) => {
  * @param {string} placeId - Google Places ID
  * @returns {Object} 详细的地点信息
  */
-exports.getPlaceDetails = async (placeId) => {
+export const getPlaceDetails = async (placeId: string) => {
     try {
         if (!GOOGLE_MAPS_API_KEY) {
             throw new Error('Google Maps API Key 未配置');
@@ -205,13 +205,13 @@ exports.getPlaceDetails = async (placeId) => {
                 fields: 'name,formatted_address,geometry,rating,opening_hours,formatted_phone_number,website'
             }
         });
-        
+
         if (response.data.status === 'OK') {
             return response.data.result;
         }
-        
+
         throw new Error('获取地点详情失败');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Place details error:', error.message);
         throw error;
     }
@@ -223,7 +223,7 @@ exports.getPlaceDetails = async (placeId) => {
  * @param {Object} options - 选项（如限制国家、类型等）
  * @returns {Array} 建议的地址列表
  */
-exports.autocomplete = async (input, options = {}) => {
+export const autocomplete = async (input: string, options: Record<string, any> = {}) => {
     try {
         if (!GOOGLE_MAPS_API_KEY) {
             throw new Error('Google Maps API Key 未配置');
@@ -239,17 +239,17 @@ exports.autocomplete = async (input, options = {}) => {
         const response = await axios.get('https://maps.googleapis.com/maps/api/place/autocomplete/json', {
             params
         });
-        
+
         if (response.data.status === 'OK') {
-            return response.data.predictions.map(prediction => ({
+            return response.data.predictions.map((prediction: any) => ({
                 description: prediction.description,
                 placeId: prediction.place_id,
                 types: prediction.types
             }));
         }
-        
+
         return [];
-    } catch (error) {
+    } catch (error: any) {
         console.error('Autocomplete error:', error.message);
         throw error;
     }

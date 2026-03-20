@@ -3,14 +3,14 @@
 // 使用 Joi 进行输入验证
 // ============================================
 
-const Joi = require('joi');
-const ExpressError = require('./ExpressError');
+import Joi from 'joi'
+import ExpressError from './ExpressError'
 
 // ============================================
 // 用户验证模式
 // ============================================
 
-exports.userRegisterSchema = Joi.object({
+export const userRegisterSchema = Joi.object({
     username: Joi.string()
         .alphanum()
         .min(3)
@@ -40,7 +40,7 @@ exports.userRegisterSchema = Joi.object({
         })
 });
 
-exports.userLoginSchema = Joi.object({
+export const userLoginSchema = Joi.object({
     identifier: Joi.string()
         .required()
         .messages({
@@ -54,7 +54,7 @@ exports.userLoginSchema = Joi.object({
         })
 });
 
-exports.userUpdateSchema = Joi.object({
+export const userUpdateSchema = Joi.object({
     username: Joi.string()
         .alphanum()
         .min(3)
@@ -75,7 +75,7 @@ exports.userUpdateSchema = Joi.object({
         .allow('', null)
 });
 
-exports.passwordUpdateSchema = Joi.object({
+export const passwordUpdateSchema = Joi.object({
     currentPassword: Joi.string()
         .required()
         .messages({
@@ -95,7 +95,7 @@ exports.passwordUpdateSchema = Joi.object({
 // 咖啡店验证模式
 // ============================================
 
-exports.cafeSchema = Joi.object({
+export const cafeSchema = Joi.object({
     name: Joi.string()
         .min(2)
         .max(100)
@@ -183,7 +183,7 @@ exports.cafeSchema = Joi.object({
         .optional()
 });
 
-exports.cafeUpdateSchema = Joi.object({
+export const cafeUpdateSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     description: Joi.string().min(10).max(2000).optional(),
     address: Joi.string().optional(),
@@ -204,7 +204,7 @@ exports.cafeUpdateSchema = Joi.object({
 //             service(服务), workspace(办公适宜度)
 // ============================================
 
-exports.reviewSchema = Joi.object({
+export const reviewSchema = Joi.object({
     content: Joi.string()
         .min(10)
         .max(2000)
@@ -253,7 +253,7 @@ exports.reviewSchema = Joi.object({
         .messages({ 'date.max': '访问日期不能是未来' })
 });
 
-exports.reviewUpdateSchema = Joi.object({
+export const reviewUpdateSchema = Joi.object({
     content: Joi.string().min(10).max(2000).optional(),
 
     rating: Joi.number().min(1).max(5).optional()
@@ -277,8 +277,8 @@ exports.reviewUpdateSchema = Joi.object({
 // 验证中间件工厂函数
 // ============================================
 
-exports.validate = (schema, property = 'body') => {
-    return (req, res, next) => {
+export const validate = (schema: Joi.ObjectSchema, property = 'body') => {
+    return (req: any, res: any, next: any) => {
         const { error, value } = schema.validate(req[property], {
             abortEarly: false,
             stripUnknown: true
@@ -298,13 +298,13 @@ exports.validate = (schema, property = 'body') => {
 // 查询参数验证
 // ============================================
 
-exports.paginationSchema = Joi.object({
+export const paginationSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sort: Joi.string().optional()
 });
 
-exports.searchQuerySchema = Joi.object({
+export const searchQuerySchema = Joi.object({
     q: Joi.string().min(1).required().messages({ 'any.required': '请提供搜索关键词' }),
     city: Joi.string().optional(),
     minRating: Joi.number().min(0).max(5).optional(),
@@ -313,7 +313,7 @@ exports.searchQuerySchema = Joi.object({
     limit: Joi.number().integer().min(1).max(100).default(20)
 });
 
-exports.coordinatesSchema = Joi.object({
+export const coordinatesSchema = Joi.object({
     lng: Joi.number().min(-180).max(180).required(),
     lat: Joi.number().min(-90).max(90).required(),
     distance: Joi.number().integer().min(100).max(50000).default(5000),
@@ -324,7 +324,7 @@ exports.coordinatesSchema = Joi.object({
 // AI 搜索解释验证
 // ============================================
 
-exports.explainSearchSchema = Joi.object({
+export const explainSearchSchema = Joi.object({
     query: Joi.string().trim().max(200).required()
         .messages({
             'string.max': '查询文本不能超过200个字符',
