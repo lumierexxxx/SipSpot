@@ -40,6 +40,7 @@ export interface IUserPreferences {
 
 export interface IUser {
   _id: string
+  id: string  // Mongoose virtual — string alias for _id
   username: string
   email: string
   avatar?: string
