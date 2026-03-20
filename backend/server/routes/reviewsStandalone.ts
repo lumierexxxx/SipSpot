@@ -141,7 +141,7 @@ router.put('/:id/moderate', protect, authorize('admin'), async (req, res, next) 
                 message: '评论已批准'
             });
         } else if (action === 'remove') {
-            await review.remove();
+            await review.deleteOne();
 
             res.status(200).json({
                 success: true,
