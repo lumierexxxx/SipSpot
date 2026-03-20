@@ -5,8 +5,6 @@
 // NOTE: @xenova/transformers 是 ESM 包，必须用 await import() 而不是 require()
 // ============================================
 
-'use strict';
-
 let _pipeline = null;
 let _ready = false;
 
@@ -95,4 +93,4 @@ function buildCafeText(cafe) {
 // ============================================
 // 导出
 // ============================================
-module.exports = { init, isReady, generateEmbedding, generateBatch, buildCafeText };
+export { init, isReady, generateEmbedding, generateBatch, buildCafeText };

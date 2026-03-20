@@ -3,12 +3,12 @@
 // 评论情感分析 + 批量分析 + 摘要生成 + 个性化推荐
 // ============================================
 
-const axios = require('axios');
+import axios from 'axios';
 
 /**
  * 分析评论内容
  */
-exports.analyzeReview = async (content, cafeName) => {
+export const analyzeReview = async (content, cafeName) => {
     try {
         if (!process.env.QWEN_API_KEY) {
             console.warn('未配置千问 API 密钥，使用基础情感分析');
@@ -166,7 +166,7 @@ function generateSimpleSummary(content, sentiment) {
 /**
  * 批量分析评论
  */
-exports.analyzeBulkReviews = async (reviews) => {
+export const analyzeBulkReviews = async (reviews) => {
     try {
         if (!reviews || reviews.length === 0) {
             return {
@@ -180,7 +180,7 @@ exports.analyzeBulkReviews = async (reviews) => {
 
         const analyses = await Promise.all(
             reviews.map((review, index) =>
-                exports.analyzeReview(review.content, review.cafeName || '')
+                analyzeReview(review.content, review.cafeName || '')
                     .catch(err => {
                         console.error(`分析评论 ${index + 1}/${reviews.length} 失败:`, err.message);
                         return null;
@@ -198,7 +198,7 @@ exports.analyzeBulkReviews = async (reviews) => {
             allKeywords.push(...analysis.keywords);
         });
 
-        const keywordFrequency = {};
+        const keywordFrequency: Record<string, number> = {};
         allKeywords.forEach(keyword => {
             keywordFrequency[keyword] = (keywordFrequency[keyword] || 0) + 1;
         });
@@ -226,11 +226,11 @@ exports.analyzeBulkReviews = async (reviews) => {
 /**
  * 生成咖啡店评论摘要
  */
-exports.generateCafeSummary = async (cafeId, reviews) => {
+export const generateCafeSummary = async (cafeId, reviews) => {
     try {
         if (!reviews || reviews.length === 0) return '暂无评论';
 
-        const bulkAnalysis = await exports.analyzeBulkReviews(reviews);
+        const bulkAnalysis = await analyzeBulkReviews(reviews);
         const total = bulkAnalysis.totalReviews;
         const { positive, negative, neutral } = bulkAnalysis.sentimentDistribution;
 
@@ -260,7 +260,7 @@ exports.generateCafeSummary = async (cafeId, reviews) => {
 /**
  * 生成咖啡店 AI 描述
  */
-exports.generateCafeDescription = async (cafeName, cafeData, reviews) => {
+export const generateCafeDescription = async (cafeName, cafeData, reviews) => {
     try {
         if (!process.env.QWEN_API_KEY) {
             return generateBasicDescription(cafeName, cafeData);
@@ -340,14 +340,14 @@ function generateBasicDescription(cafeName, cafeData) {
  * @param {Object} userHistory - { reviews, favorites, visited }
  * @returns {Array} 带评分和推荐理由的咖啡店列表
  */
-exports.generatePersonalizedRecommendations = async (user, candidateCafes, userHistory) => {
+export const generatePersonalizedRecommendations = async (user, candidateCafes, userHistory) => {
     try {
         const { reviews = [], favorites = [], visited = [] } = userHistory;
 
         // 1. 统计用户偏好
-        const amenityFreq = {};
-        const specialtyFreq = {};
-        const priceValues = [];
+        const amenityFreq: Record<string, number> = {};
+        const specialtyFreq: Record<string, number> = {};
+        const priceValues: number[] = [];
 
         // 从评论中提取偏好
         reviews.forEach(review => {
@@ -494,7 +494,7 @@ exports.generatePersonalizedRecommendations = async (user, candidateCafes, userH
  * @param {string[]} cafeNames - 最多 5 个咖啡馆名称
  * @returns {Promise<string|null>} 解释文本，失败时返回 null
  */
-exports.generateSearchExplanation = async (query, cafeNames) => {
+export const generateSearchExplanation = async (query, cafeNames) => {
     try {
         if (!process.env.QWEN_API_KEY) return null;
 
@@ -542,7 +542,7 @@ ${cafeList}
 };
 
 // 导出配置信息
-exports.getConfig = () => {
+export const getConfig = () => {
     return {
         apiConfigured: !!process.env.QWEN_API_KEY,
         apiProvider: 'Qwen (通义千问)',

@@ -3,9 +3,11 @@
 // 图片上传和管理
 // ============================================
 
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
+import cloudinaryLib from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+
+const cloudinary = cloudinaryLib.v2;
 
 // ============================================
 // Cloudinary 配置
@@ -29,7 +31,7 @@ const cafeStorage = new CloudinaryStorage({
             { quality: 'auto' },
             { fetch_format: 'auto' }
         ]
-    }
+    } as any
 });
 
 // ============================================
@@ -45,7 +47,7 @@ const reviewStorage = new CloudinaryStorage({
             { quality: 'auto' },
             { fetch_format: 'auto' }
         ]
-    }
+    } as any
 });
 
 // ============================================
@@ -61,7 +63,7 @@ const avatarStorage = new CloudinaryStorage({
             { quality: 'auto' },
             { fetch_format: 'auto' }
         ]
-    }
+    } as any
 });
 
 // ============================================
@@ -70,7 +72,7 @@ const avatarStorage = new CloudinaryStorage({
 const fileFilter = (req, file, cb) => {
     // 检查文件类型
     const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
-    
+
     if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
@@ -85,7 +87,7 @@ const fileFilter = (req, file, cb) => {
 /**
  * 咖啡店图片上传（最多10张）
  */
-exports.uploadCafeImages = multer({
+export const uploadCafeImages = multer({
     storage: cafeStorage,
     fileFilter: fileFilter,
     limits: {
@@ -97,7 +99,7 @@ exports.uploadCafeImages = multer({
 /**
  * 评论图片上传（最多5张）
  */
-exports.uploadReviewImages = multer({
+export const uploadReviewImages = multer({
     storage: reviewStorage,
     fileFilter: fileFilter,
     limits: {
@@ -109,7 +111,7 @@ exports.uploadReviewImages = multer({
 /**
  * 用户头像上传（单张）
  */
-exports.uploadAvatar = multer({
+export const uploadAvatar = multer({
     storage: avatarStorage,
     fileFilter: fileFilter,
     limits: {
@@ -125,7 +127,7 @@ exports.uploadAvatar = multer({
  * 删除单张图片
  * @param {string} publicId - Cloudinary public_id
  */
-exports.deleteImage = async (publicId) => {
+export const deleteImage = async (publicId) => {
     try {
         const result = await cloudinary.uploader.destroy(publicId);
         return result;
@@ -139,18 +141,18 @@ exports.deleteImage = async (publicId) => {
  * 删除多张图片
  * @param {string[]} publicIds - Cloudinary public_ids 数组
  */
-exports.deleteImages = async (publicIds) => {
+export const deleteImages = async (publicIds) => {
     try {
         if (!publicIds || publicIds.length === 0) return;
-        
+
         const deletePromises = publicIds.map(id => cloudinary.uploader.destroy(id));
         const results = await Promise.allSettled(deletePromises);
-        
+
         const successful = results.filter(r => r.status === 'fulfilled').length;
         const failed = results.filter(r => r.status === 'rejected').length;
-        
+
         console.log(`Deleted ${successful} images, ${failed} failed`);
-        
+
         return results;
     } catch (error) {
         console.error('Error deleting images from Cloudinary:', error);
@@ -163,7 +165,7 @@ exports.deleteImages = async (publicIds) => {
  * @param {string} url - 原始Cloudinary URL
  * @param {string} transformation - 变换参数，如 'w_200,h_200,c_fill'
  */
-exports.getTransformedUrl = (url, transformation) => {
+export const getTransformedUrl = (url, transformation) => {
     if (!url) return null;
     return url.replace('/upload/', `/upload/${transformation}/`);
 };
@@ -171,15 +173,15 @@ exports.getTransformedUrl = (url, transformation) => {
 /**
  * 获取缩略图URL
  */
-exports.getThumbnail = (url) => {
-    return exports.getTransformedUrl(url, 'w_200,h_200,c_fill');
+export const getThumbnail = (url) => {
+    return getTransformedUrl(url, 'w_200,h_200,c_fill');
 };
 
 /**
  * 获取卡片图片URL
  */
-exports.getCardImage = (url) => {
-    return exports.getTransformedUrl(url, 'w_400,h_300,c_fill');
+export const getCardImage = (url) => {
+    return getTransformedUrl(url, 'w_400,h_300,c_fill');
 };
 
 /**
@@ -187,12 +189,12 @@ exports.getCardImage = (url) => {
  * @param {string[]} imagePaths - 本地图片路径数组
  * @param {string} folder - Cloudinary文件夹
  */
-exports.uploadMultiple = async (imagePaths, folder) => {
+export const uploadMultiple = async (imagePaths, folder) => {
     try {
         const uploadPromises = imagePaths.map(path =>
             cloudinary.uploader.upload(path, { folder })
         );
-        
+
         const results = await Promise.all(uploadPromises);
         return results.map(result => ({
             url: result.secure_url,
@@ -206,4 +208,4 @@ exports.uploadMultiple = async (imagePaths, folder) => {
 };
 
 // 导出cloudinary实例（用于高级操作）
-module.exports.cloudinary = cloudinary;
+export { cloudinary };

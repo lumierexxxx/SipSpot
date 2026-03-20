@@ -4,8 +4,6 @@
 // 纯数学，无外部依赖，可独立测试
 // ============================================
 
-'use strict';
-
 // ============================================
 // 基础向量运算
 // ============================================
@@ -55,7 +53,7 @@ function normalizeVector(v) {
  * @param {number} [options.topK=10]
  * @returns {{ cafe: Object, similarityScore: number }[]}
  */
-function rankCafes(queryEmb, cafes, options = {}) {
+function rankCafes(queryEmb, cafes, options: { amenityBoost?: string[]; topK?: number } = {}) {
     const { amenityBoost = [], topK = 10 } = options;
 
     const scored = cafes
@@ -94,7 +92,7 @@ function computeUserEmbedding(historyItems) {
     if (valid.length === 0) return [];
 
     // 按时间降序，只取最近 30 条（滑动窗口）
-    const sorted = [...valid].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+    const sorted = [...valid].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
     const window = sorted.slice(0, 30);
 
     // 指数衰减：越新的权重越高 effectiveWeight = item.weight × 0.85^index
@@ -134,7 +132,7 @@ function shouldUpdatePreference(user) {
 // ============================================
 // 导出
 // ============================================
-module.exports = {
+export {
     cosineSimilarity,
     normalizeVector,
     rankCafes,
