@@ -13,7 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@contexts/AuthContext';
 import { toggleFavorite } from '@services/usersAPI';
-import type { ICafe } from '../types/cafe';
+import type { ICafe } from '@/types/cafe';
 
 // ── Maps ─────────────────────────────────────────────────────────────────────
 
