@@ -22,7 +22,7 @@ No changes to `tsconfig.json` are needed.
 The frontend maintains its own `types/` folder. Types are not imported from the backend package — they are kept in sync manually.
 
 ### `types/cafe.ts`
-Replace the entire existing file:
+Replace the entire existing file. **Note:** The existing file exports a type named `Cafe` — this is renamed to `ICafe`. Before migrating, grep for `import.*Cafe.*from.*@/types` across the codebase and update all consumers.
 
 ```ts
 export type AmenityKey =
@@ -405,12 +405,20 @@ export interface CafeBadge {
 
 export type CategoryFilter = (cafe: ICafe) => boolean
 
+export interface HowItWorksStep {
+  icon: React.ReactElement
+  step: string         // e.g. '01', '02'
+  color: string        // Tailwind classes, e.g. 'bg-amber-50 text-amber-700'
+  border: string       // Tailwind classes, e.g. 'border-amber-200'
+}
+
 // Constants
 export const CATEGORIES: string[]
 export const CATEGORY_FILTERS: Record<string, CategoryFilter>
 export const VIBES: Vibe[]
 export const CURATED_REVIEWS: CuratedReview[]
 export const FALLBACK_IMAGES: string[]
+export const HOW_IT_WORKS_STEPS: HowItWorksStep[]
 
 // Helper functions
 export function getCafeBadge(cafe: ICafe): CafeBadge
