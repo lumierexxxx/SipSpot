@@ -11,7 +11,7 @@
 | 后端运行时 | Node.js | 16+ | 服务器运行环境 |
 | 后端框架 | Express.js | 4.x | REST API 框架 |
 | 数据库 | MongoDB + Mongoose | 7.x | 数据持久化 + ODM |
-| 语言 | TypeScript | 5.x | 类型安全 |
+| 语言 | TypeScript | 5.x | 类型安全（后端核心模块 controllers、services、models 均已迁移至 TypeScript；部分早期编写的路由文件如 recommendations.js 仍保留 CommonJS 格式，属于渐进式迁移中的历史遗留） |
 | 前端框架 | React | 19 | UI 组件库 |
 | 构建工具 | Vite | 5.x | 前端构建 + 开发服务器 |
 | 样式 | TailwindCSS | v4 | 原子化 CSS |
@@ -142,7 +142,7 @@ const result = JSON.parse(cleanedText);
 
 **basicSentimentAnalysis() 降级路径**
 
-本地降级分析基于中英文关键词词典匹配实现。正向词典包含约 14 个词条（如"好、棒、推荐、comfortable、amazing"等），负向词典包含约 11 个词条（如"差、失望、noisy、terrible"等）。统计文本中命中的正负向词条数量：正向词更多则判定为 positive，负向词更多则为 negative，否则为 neutral，基准置信度设为 0.6，随命中差值线性提升，最高不超过 0.9。
+本地降级分析基于中英文关键词词典匹配实现。正向词典包含约33个词条（中文19个，英文14个），负向词典包含约28个词条（中文17个，英文11个）。统计文本中命中的正负向词条数量：正向词更多则判定为 positive，负向词更多则为 negative，否则为 neutral，基准置信度设为 0.6，随命中差值线性提升，最高不超过 0.9。
 
 ### 4.2.4 推荐引擎实现
 
@@ -181,7 +181,7 @@ if (user.preferenceEmbedding && user.preferenceEmbedding.length >= 768) {
 
 ### 4.3.1 JWT 认证中间件
 
-认证中间件（`middleware/auth.js`）提供 `protect` 和 `optionalAuth` 两种形式。`protect` 中间件从请求头 `Authorization: Bearer <token>` 中提取 JWT，调用 `jwt.verify()` 验证签名和有效期，验证通过后将解码后的用户信息挂载至 `req.user`，供后续控制器直接使用；验证失败则通过 `next(new ExpressError('未授权', 401))` 终止请求链。`optionalAuth` 采用相同逻辑，但验证失败时不报错，仅将 `req.user` 设为 `null`，允许匿名用户访问可选鉴权的路由（如查看咖啡馆详情）。`authorize(roles)` 中间件在 `protect` 之后调用，检查 `req.user.role` 是否属于允许的角色列表，实现基于角色的访问控制。
+认证中间件（`middleware/auth.js`）提供 `protect` 和 `optionalAuth` 两种形式。`protect` 中间件从请求头 `Authorization: Bearer` 或 `req.cookies.token` 提取 JWT token（优先读取请求头），再调用 `jwt.verify()` 验证签名和有效期，验证通过后将解码后的用户信息挂载至 `req.user`，供后续控制器直接使用；验证失败则通过 `next(new ExpressError('未授权', 401))` 终止请求链。`optionalAuth` 采用相同逻辑，但验证失败时不报错，仅将 `req.user` 设为 `null`，允许匿名用户访问可选鉴权的路由（如查看咖啡馆详情）。`authorize(roles)` 中间件在 `protect` 之后调用，检查 `req.user.role` 是否属于允许的角色列表，实现基于角色的访问控制。
 
 ### 4.3.2 地理位置查询
 
@@ -208,7 +208,7 @@ MongoDB 原生地理空间查询引擎直接在数据库层完成距离过滤与
 
 ### 4.4.1 AuthContext 全局认证状态
 
-前端采用 React Context 结合 `useReducer` 管理全局认证状态，将用户信息、登录状态和相关操作集中封装于 `AuthContext`。所有需要访问认证状态的组件通过 `useAuth()` Hook 取得所需数据，彻底消除了跨层级组件间的 prop drilling 问题。应用初始化时，Context 从 `localStorage` 中读取已持久化的用户对象（仅含非敏感字段）完成状态恢复；JWT token 本身存储于 httpOnly Cookie 中，JavaScript 层不可读取，防止 XSS 攻击窃取凭证。用户登录时同步更新 `localStorage` 和 Context 状态，登出时清除二者，保持状态一致性。
+前端采用 React Context 结合 `useState` 管理全局认证状态，将用户信息、登录状态和相关操作集中封装于 `AuthContext`。所有需要访问认证状态的组件通过 `useAuth()` Hook 取得所需数据，彻底消除了跨层级组件间的 prop drilling 问题。应用初始化时，Context 从 `localStorage` 中读取已持久化的用户对象（仅含非敏感字段）完成状态恢复；JWT token 由后端 JSON 响应体返回，前端负责存储管理；用户对象持久化至 `localStorage`，刷新页面后状态恢复。用户登录时同步更新 `localStorage` 和 Context 状态，登出时清除二者，保持状态一致性。
 
 ### 4.4.2 Axios 拦截器 Token 刷新队列
 
@@ -222,6 +222,7 @@ if (isRefreshing) {
 }
 originalRequest._retry = true;
 isRefreshing = true;
+const { default: axios } = await import('axios');
 await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, { withCredentials: true });
 processQueue(null);
 isRefreshing = false;
