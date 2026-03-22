@@ -2,16 +2,16 @@
 
 ## Overview
 
-This spec covers the first phase of the frontend TypeScript migration and UI redesign for SipSpot. It includes all shared infrastructure (services, hooks, contexts, i18n, types) and the Home page (Navbar + 14 sub-components). All downstream specs (3B: Discovery + Detail, 3C: Reviews + User + Auth) depend on this infrastructure.
+This spec covers the first phase of the frontend TypeScript migration and UI redesign for SipSpot. It includes all shared infrastructure (services, hooks, contexts, i18n, types) and the Home page (Navbar + 14 sub-components + homeData utility). All downstream specs (3B: Discovery + Detail, 3C: Reviews + User + Auth) depend on this infrastructure.
 
-**In scope:** ~30 files
-**Out of scope:** CafeList, CafeDetail, Reviews, Profile, Auth pages (covered in 3B and 3C)
+**In scope:** ~33 files
+**Out of scope:** CafeListPage, CafeDetailPage, Reviews, Profile, Auth pages (covered in 3B and 3C)
 
 ---
 
 ## 1. TypeScript Configuration
 
-The frontend `tsconfig.json` already exists with `"strict": true`. All new and migrated `.tsx`/`.ts` files must comply with strict mode — no `@ts-nocheck`, no `any` casts unless explicitly justified, no implicit any.
+The frontend `tsconfig.json` already exists with `"strict": true`. All new and migrated `.tsx`/`.ts` files must comply with strict mode — no `@ts-nocheck`, no implicit any, no `any` casts unless explicitly justified with a comment.
 
 No changes to `tsconfig.json` are needed.
 
@@ -19,10 +19,10 @@ No changes to `tsconfig.json` are needed.
 
 ## 2. Type Definitions (`frontend/src/types/`)
 
-The frontend maintains its own `types/` folder mirroring the backend. Types are not imported from the backend package — they are kept in sync manually.
+The frontend maintains its own `types/` folder. Types are not imported from the backend package — they are kept in sync manually.
 
 ### `types/cafe.ts`
-Update the existing file to use English short keys (matching the backend migration):
+Replace the entire existing file:
 
 ```ts
 export type AmenityKey =
@@ -30,31 +30,35 @@ export type AmenityKey =
   | 'pet_friendly' | 'no_smoking' | 'air_conditioning' | 'parking'
   | 'wheelchair_accessible' | 'laptop_friendly' | 'group_friendly' | 'work_friendly'
 
+// Matches frontend/src/locales/en/specialties.json exactly
 export type SpecialtyType =
-  | 'espresso' | 'pour_over' | 'cold_brew' | 'matcha'
-  | 'single_origin' | 'seasonal' | string
+  | 'espresso' | 'pour_over' | 'cold_brew' | 'latte_art'
+  | 'specialty_beans' | 'desserts' | 'light_meals'
 
 export type DayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
-export type VibeType = 'work' | 'date' | 'hangout' | 'quiet' | 'study'
+export interface CafeImage {
+  cardImage?: string
+  url?: string
+}
 
 export interface IOpeningHours {
   day: DayKey
-  open: string
-  close: string
+  open: string    // e.g. "09:00"
+  close: string   // e.g. "22:00"
   isClosed: boolean
 }
 
 export interface ILocation {
   type: 'Point'
-  coordinates: [number, number]
+  coordinates: [number, number]  // [longitude, latitude]
 }
 
 export interface ICafe {
   _id: string
   name: string
   description: string
-  images: string[]
+  images: Array<CafeImage | string>
   location: ILocation
   address: string
   city: string
@@ -67,13 +71,30 @@ export interface ICafe {
   author: string | IUser
   reviews: string[] | IReview[]
   aiSummary?: string
+  isVerified?: boolean
+  isFavorited?: boolean   // computed from auth user's favorites — may be absent from API response
   createdAt: string
   updatedAt: string
 }
+
+export interface FilterState {
+  search: string
+  city: string
+  minRating: string
+  maxPrice: string
+  amenities: string[]
+  sort: string
+}
 ```
 
+> **Note on `AmenityKey` and `SpecialtyType`:** The backend DB migration (`npm run migrate`) renames all existing Chinese/bilingual enum values to these English short keys. These types are correct post-migration.
+
 ### `types/user.ts`
+Create new file:
+
 ```ts
+import type { AmenityKey, SpecialtyType } from './cafe'
+
 export interface IUser {
   _id: string
   username: string
@@ -107,7 +128,12 @@ export interface IUserPreferences {
 ```
 
 ### `types/review.ts`
+Create new file:
+
 ```ts
+import type { ICafe } from './cafe'
+import type { IUser } from './user'
+
 export interface IReview {
   _id: string
   content: string
@@ -139,6 +165,8 @@ export interface IReview {
 ```
 
 ### `types/api.ts`
+Create new file:
+
 ```ts
 export interface ApiResponse<T = unknown> {
   success: boolean
@@ -155,7 +183,8 @@ export interface ApiResponse<T = unknown> {
 ```
 
 ### `types/index.ts`
-Barrel export for all types:
+Create barrel export:
+
 ```ts
 export * from './cafe'
 export * from './user'
@@ -167,13 +196,27 @@ export * from './api'
 
 ## 3. Services Typing
 
-The three API service files are migrated from `.js` to `.ts`. Each function returns the unwrapped data type (not the raw `ApiResponse` wrapper).
+Migrate the three API service files and the Axios instance from `.js` to `.ts`. Each function returns the unwrapped data type (not the raw `ApiResponse` wrapper). No behavior changes — types are added over existing logic.
 
-### Pattern
+### `services/api.ts`
+Add types to the existing Axios instance and interceptor logic. The interceptor (401 refresh queue, `clearAuth`) stays unchanged.
+
+### `services/authAPI.ts`
 ```ts
-// services/cafesAPI.ts
-import api from './api'
-import type { ApiResponse, ICafe } from '@/types'
+import type { IUser, ApiResponse } from '@/types'
+
+export const login = async (email: string, password: string): Promise<IUser>
+export const register = async (username: string, email: string, password: string): Promise<IUser>
+export const logout = async (): Promise<void>
+export const forgotPassword = async (email: string): Promise<void>
+export const resetPassword = async (token: string, password: string): Promise<void>
+export const verifyEmail = async (token: string): Promise<void>
+export const resendVerification = async (): Promise<void>
+```
+
+### `services/cafesAPI.ts`
+```ts
+import type { ICafe, ApiResponse } from '@/types'
 
 export interface CafeSearchParams {
   page?: number
@@ -185,28 +228,30 @@ export interface CafeSearchParams {
   query?: string
 }
 
-export const getCafes = async (params?: CafeSearchParams): Promise<ICafe[]> => {
-  const { data } = await api.get<ApiResponse<ICafe[]>>('/cafes', { params })
-  return data.data ?? []
-}
+export const getCafes = async (params?: CafeSearchParams): Promise<ICafe[]>
+export const getCafe = async (id: string): Promise<ICafe>
+export const createCafe = async (data: FormData): Promise<ICafe>
+export const updateCafe = async (id: string, data: FormData): Promise<ICafe>
+export const deleteCafe = async (id: string): Promise<void>
+export const searchCafes = async (query: string): Promise<ICafe[]>
+export const getNearby = async (lat: number, lng: number, radius?: number): Promise<ICafe[]>
 ```
 
-The `api.ts` (Axios instance) is migrated from `.js` to `.ts`. The existing interceptor logic (401 refresh queue, `clearAuth`) stays unchanged — only types are added.
+### `services/usersAPI.ts`
+```ts
+import type { IUser, ICafe, ApiResponse } from '@/types'
 
-### Files
-- `services/api.ts` — Axios instance + interceptors
-- `services/authAPI.ts` — login, register, logout, forgotPassword, resetPassword, verifyEmail
-- `services/cafesAPI.ts` — getCafes, getCafe, createCafe, updateCafe, deleteCafe, searchCafes, getNearby
-- `services/usersAPI.ts` — getCurrentUser, updateProfile, toggleFavorite, getFavorites
+export const getCurrentUser = async (): Promise<IUser>
+export const updateProfile = async (data: Partial<IUser>): Promise<IUser>
+export const toggleFavorite = async (cafeId: string): Promise<{ favorites: string[] }>
+export const getFavorites = async (): Promise<ICafe[]>
+```
 
 ---
 
 ## 4. Hooks
 
-Two hook files are migrated:
-
 ### `hooks/useAPI.ts`
-Generic fetch hook gets a type parameter:
 ```ts
 export function useAPI<T>(fetchFn: () => Promise<T>): {
   data: T | null
@@ -231,7 +276,7 @@ export function useGeolocation(): GeolocationState
 
 ## 5. AuthContext
 
-`AuthContext.jsx` → `AuthContext.tsx` with a typed context interface.
+`AuthContext.jsx` → `AuthContext.tsx` with a typed context interface. No behavior changes.
 
 ```ts
 // contexts/AuthContext.tsx
@@ -255,13 +300,11 @@ export const useAuth = (): AuthContextValue => {
 }
 ```
 
-No behavior changes — types are added over existing logic.
-
 ---
 
 ## 6. i18n TypeScript
 
-`i18n.js` → `i18n.ts` with module augmentation for a fully typed `t()` function. TypeScript will catch typos like `t('amenities.wfi')` and provide autocomplete on all keys.
+`i18n.js` → `i18n.ts` with module augmentation for a fully typed `t()` function.
 
 ### `i18n.ts`
 ```ts
@@ -271,15 +314,19 @@ import enCommon from './locales/en/common.json'
 import enAmenities from './locales/en/amenities.json'
 import enSpecialties from './locales/en/specialties.json'
 import enDays from './locales/en/days.json'
+import enHome from './locales/en/home.json'
+import enCafeList from './locales/en/cafeList.json'
 import zhCommon from './locales/zh/common.json'
 import zhAmenities from './locales/zh/amenities.json'
 import zhSpecialties from './locales/zh/specialties.json'
 import zhDays from './locales/zh/days.json'
+import zhHome from './locales/zh/home.json'
+import zhCafeList from './locales/zh/cafeList.json'
 
 export const defaultNS = 'common'
 export const resources = {
-  en: { common: enCommon, amenities: enAmenities, specialties: enSpecialties, days: enDays },
-  zh: { common: zhCommon, amenities: zhAmenities, specialties: zhSpecialties, days: zhDays },
+  en: { common: enCommon, amenities: enAmenities, specialties: enSpecialties, days: enDays, home: enHome, cafeList: enCafeList },
+  zh: { common: zhCommon, amenities: zhAmenities, specialties: zhSpecialties, days: zhDays, home: zhHome, cafeList: zhCafeList },
 } as const
 
 i18n.use(initReactI18next).init({
@@ -307,7 +354,41 @@ declare module 'i18next' {
 
 ---
 
-## 7. Navbar
+## 7. `utils/homeData.ts`
+
+Migrate `homeData.js` → `homeData.ts`. Add types for `VIBES`, `CURATED_REVIEWS`, and helper functions. The `VIBES` array keeps the `filter` string pattern (URL query string appended to `/cafes?`) — no type changes needed to how vibes are used in `ExploreByVibeSection`.
+
+```ts
+export interface Vibe {
+  emoji: string
+  gradient: string
+  filter: string   // URL query string, e.g. 'amenity=work_friendly'
+}
+
+export interface CuratedReview {
+  id: number
+  author: string
+  avatar: string
+  avatarColor: string
+  shop: string
+  rating: number
+  date: string
+  helpful: number
+  image: string
+}
+
+// Update VIBES filter strings to use English short keys (post-migration)
+// e.g. 'amenity=work_friendly' instead of URL-encoded Chinese
+export const VIBES: Vibe[] = [...]
+
+export const CURATED_REVIEWS: CuratedReview[] = [...]
+```
+
+> **Note on VIBES filter strings:** The existing `filter` values are URL-encoded Chinese amenity strings. After the DB migration to English short keys, these must be updated to use English short keys (e.g. `amenity=work_friendly`). Update as part of this migration.
+
+---
+
+## 8. Navbar
 
 `Navbar.jsx` → `Navbar.tsx`
 
@@ -317,90 +398,117 @@ interface NavbarProps {
 }
 ```
 
-The mobile menu open/close state is typed as `useState<boolean>`. The `useAuth()` return value is typed via the updated `AuthContext`. No UI changes.
-
 ---
 
-## 8. Home Page Components
+## 9. Home Page Components
 
-`pages/Home.jsx` → `pages/Home.tsx` plus 14 sub-components in `components/home/`. Each sub-component gets a prop interface. The UI redesign swaps raw `<button>`, `<input>`, `<div className="card">` elements for the existing `components/ui/` primitives (Button, Input, Card) where present. No layout changes — the structure already matches the reference project.
+`pages/Home.jsx` → `pages/Home.tsx` plus all 14 sub-components in `components/home/`. Each sub-component gets a prop interface and is converted to `.tsx`. The UI redesign swaps raw `<button>`, `<input>`, `<div className="card">` elements for the existing `components/ui/` primitives where they fit. No layout changes.
 
-### Component prop interfaces
+### Prop interfaces
 
-**`HeroSection.tsx`**
+**`HeroSection.tsx`** — no props (manages own state, renders HeroSearchBar + AISearchBar + HeroStats)
+
+**`HeroSearchBar.tsx`**
 ```ts
-interface HeroSectionProps {
-  onSearch: (query: string) => void
+interface HeroSearchBarProps {
+  query: string
+  location: string
+  onQueryChange: (value: string) => void
+  onLocationChange: (value: string) => void
+  onSubmit: (e: React.FormEvent) => void
 }
-// Uses: <Input> from ui/input, <Button> from ui/button
+// Replace <input> with <Input> from ui/input
+// Replace <button type="submit"> with <Button> from ui/button
 ```
 
-**`FeaturedShops.tsx`**
+**`AISearchBar.tsx`** — no props (manages own state, navigates internally)
 ```ts
-interface FeaturedShopsProps {
+// Replace <input> with <Input> from ui/input
+// Replace <button> with <Button> from ui/button
+```
+
+**`HeroStats.tsx`** — no props (static curated content)
+
+**`FeaturedShopsSection.tsx`**
+```ts
+interface FeaturedShopsSectionProps {
   cafes: ICafe[]
   loading: boolean
+  activeCategory: string
+  onCategoryChange: (category: string) => void
+  isPersonalized: boolean
 }
-// Uses: <Card> from ui/card for each shop tile
 ```
 
-**`ExploreByVibe.tsx`**
+**`CategoryFilterBar.tsx`**
 ```ts
-interface ExploreByVibeProps {
-  onVibeSelect: (vibe: VibeType) => void
+interface CategoryFilterBarProps {
+  categories: string[]
+  active: string
+  onChange: (category: string) => void
+  getLabel: (category: string) => string
 }
+// Replace <button> with <Button variant="ghost"> from ui/button
 ```
 
-**`NewsletterSection.tsx`**
-```ts
-interface NewsletterSectionProps {
-  onSubscribe: (email: string) => Promise<void>
-}
-// Uses: <Input> + <Button>
-```
-
-**`ShopCard.tsx`** (used inside FeaturedShops)
+**`ShopCard.tsx`**
 ```ts
 interface ShopCardProps {
   cafe: ICafe
-  onFavorite?: (id: string) => void
+  index?: number
 }
-// Uses: <Card> from ui/card
+// Uses: <Card> from ui/card for the outer container
 ```
 
-**`VibeCard.tsx`** (used inside ExploreByVibe)
+**`CardSkeleton.tsx`** — no props (pure presentational)
+
+**`ExploreByVibeSection.tsx`** — no props (uses VIBES constant from homeData.ts, navigates internally)
+
+**`VibeCard` is not a separate file** — the vibe cards are rendered inline in `ExploreByVibeSection` using the `VIBES` array. No separate component needed.
+
+**`CommunityReviewsSection.tsx`**
 ```ts
-interface VibeCardProps {
-  vibe: VibeType
-  label: string
-  icon: string
-  onClick: () => void
+interface CommunityReviewsSectionProps {
+  reviews: CuratedReview[]  // from homeData.ts
 }
 ```
 
-**Pure presentational (no props interface needed):**
-- `HowItWorks.tsx` — static content
-- `AppDownload.tsx` — static content
-- `StatsSection.tsx` — static content
+**`ReviewCard.tsx`**
+```ts
+interface ReviewCardProps {
+  review: CuratedReview
+  index?: number
+}
+```
 
-**Data-fetching sub-components** (fetch own data, no props needed beyond optional callbacks):
-- `TopRatedSection.tsx`
-- `RecentReviewsSection.tsx`
-- `NearbySection.tsx`
+**`StarRating.tsx`**
+```ts
+interface StarRatingProps {
+  rating: number
+}
+```
+
+**`HowItWorksSection.tsx`** — no props (uses HOW_IT_WORKS_STEPS constant from homeData.ts)
+
+**`NewsletterSection.tsx`** — no props (manages own email state and submission)
+```ts
+// Replace <input> with <Input> from ui/input
+// Replace <button> with <Button> from ui/button
+```
 
 ---
 
-## 9. File Migration Summary
+## 10. File Migration Summary
 
 | File | Action |
 |---|---|
-| `src/types/cafe.ts` | Update enum keys to English short keys |
+| `src/types/cafe.ts` | Replace entirely — update enum keys, add `CafeImage`, `isFavorited`, `isVerified` |
 | `src/types/user.ts` | Create |
 | `src/types/review.ts` | Create |
 | `src/types/api.ts` | Create |
 | `src/types/index.ts` | Create (barrel) |
-| `src/types/i18n.d.ts` | Create (module augmentation) |
-| `src/i18n.js` | Migrate to `i18n.ts` |
+| `src/types/i18n.d.ts` | Create (i18next module augmentation) |
+| `src/i18n.js` | Migrate to `i18n.ts` — add `home` and `cafeList` namespace imports |
 | `src/services/api.js` | Migrate to `api.ts` |
 | `src/services/authAPI.js` | Migrate to `authAPI.ts` |
 | `src/services/cafesAPI.js` | Migrate to `cafesAPI.ts` |
@@ -408,15 +516,33 @@ interface VibeCardProps {
 | `src/hooks/useAPI.js` | Migrate to `useAPI.ts` |
 | `src/hooks/useGeolocation.js` | Migrate to `useGeolocation.ts` |
 | `src/contexts/AuthContext.jsx` | Migrate to `AuthContext.tsx` |
+| `src/utils/homeData.js` | Migrate to `homeData.ts` — add type interfaces, update VIBES filter strings to English short keys |
 | `src/components/Navbar.jsx` | Migrate to `Navbar.tsx` |
 | `src/pages/Home.jsx` | Migrate to `Home.tsx` |
-| `src/components/home/*.jsx` | Migrate all (~14 files) to `.tsx` |
+| `src/components/home/HeroSection.jsx` | Migrate to `HeroSection.tsx` |
+| `src/components/home/HeroSearchBar.jsx` | Migrate to `HeroSearchBar.tsx` |
+| `src/components/home/AISearchBar.jsx` | Migrate to `AISearchBar.tsx` |
+| `src/components/home/HeroStats.jsx` | Migrate to `HeroStats.tsx` |
+| `src/components/home/FeaturedShopsSection.jsx` | Migrate to `FeaturedShopsSection.tsx` |
+| `src/components/home/CategoryFilterBar.jsx` | Migrate to `CategoryFilterBar.tsx` |
+| `src/components/home/ShopCard.jsx` | Migrate to `ShopCard.tsx` |
+| `src/components/home/CardSkeleton.jsx` | Migrate to `CardSkeleton.tsx` |
+| `src/components/home/ExploreByVibeSection.jsx` | Migrate to `ExploreByVibeSection.tsx` |
+| `src/components/home/CommunityReviewsSection.jsx` | Migrate to `CommunityReviewsSection.tsx` |
+| `src/components/home/ReviewCard.jsx` | Migrate to `ReviewCard.tsx` |
+| `src/components/home/StarRating.jsx` | Migrate to `StarRating.tsx` |
+| `src/components/home/HowItWorksSection.jsx` | Migrate to `HowItWorksSection.tsx` |
+| `src/components/home/NewsletterSection.jsx` | Migrate to `NewsletterSection.tsx` |
+
+Total: 31 files
 
 ---
 
-## 10. Non-Goals
+## 11. Non-Goals
 
-- No changes to routing (`App.jsx`) in this spec — that is covered in 3B when page components are ready
+- No changes to routing (`App.jsx`) — covered in 3B
 - No changes to `CafeListPage`, `CafeDetailPage`, `ReviewForm`, `ReviewList`, `Profile`, `FavoritesPage`, or any auth pages
 - No new features — migration and UI primitive adoption only
 - No backend changes
+- Do not migrate the `components/cafe-list/` components — already TypeScript, covered in 3B
+- Do not migrate the `components/ui/` Shadcn primitives — already TypeScript
