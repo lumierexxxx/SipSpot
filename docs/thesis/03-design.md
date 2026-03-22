@@ -82,7 +82,9 @@ cosine(A, B) = (A · B) / (|A| × |B|)
 
 实现中对分母为零的情况进行了保护（返回 0），对维度不匹配的情况同样返回 0 并跳过。由于 `generateEmbedding` 在生成时已归一化，查询向量与 passage 向量的模长均为 1，余弦相似度在数值上等同于点积，但实现中仍保留完整的分母计算以确保健壮性。
 
-`rankCafes` 函数额外支持 `amenityBoost` 参数，允许调用方传入一组设施名称，每匹配一项在余弦得分基础上叠加 0.1 分（上限 +0.3），以便在语义相似度基础上融入结构化过滤信号，最终得分截断至 1.0。
+`rankCafes` 函数额外支持 `amenityBoost` 参数，接受英文枚举键数组（与 Cafe 模型的 amenities 字段保持一致，如 `wifi`、`power_outlet`），在余弦相似度基础上为命中设施的咖啡馆额外加分（每个匹配+0.1，上限+0.3），以便在语义相似度基础上融入结构化过滤信号，最终得分截断至 1.0。
+
+注：代码注释中存在 amenityBoost 参数描述为中文字符串的历史遗留问题，属于已知待修复缺陷（Known Issue）。
 
 **扩展路径**：当单节点应用层排序成为性能瓶颈时，可将 `embedding` 字段迁移至 MongoDB Atlas Vector Search 的向量索引，或将向量数据独立存入 Milvus、Qdrant 等专用向量数据库。届时仅需替换 `rankCafes` 的底层实现，上游控制器代码无需修改。
 
@@ -104,7 +106,7 @@ cosine(A, B) = (A · B) / (|A| × |B|)
 
 **两类摘要生成函数的区分**是本模块的重要设计决策：
 
-- `generateCafeSummary(cafeId, reviews)`：调用 `analyzeBulkReviews()` 对评论集合进行本地情感聚合，统计好评率与高频关键词，生成结构化文本摘要，**不调用 Qwen API**，适合批量处理场景。
+- `generateCafeSummary(cafeId, reviews)`：调用 `analyzeBulkReviews()` 对评论集合进行本地情感聚合，统计好评率与高频关键词，生成纯文本摘要字符串，**不调用 Qwen API**，适合批量处理场景。该函数返回一段纯文本，格式为"基于N条评论，顾客普遍给予好评（XX%好评率）。常提到的关键词：...。"
 - `generateCafeDescription(cafeName, cafeData, reviews)`：调用 Qwen API，基于咖啡馆基础信息与近期评论片段，生成 80-120 字的自然语言简介，temperature=0.7 以保证文本多样性。
 
 **降级设计**：当 `QWEN_API_KEY` 未配置或 API 调用超时（15 秒）时，系统自动切换至 `basicSentimentAnalysis()` 本地降级函数。该函数内置中英文正向词典（约 14 个正向词）与负向词典（约 11 个负向词），通过关键词计数判断情感倾向，confidence 基准值为 0.6，随正负词差值线性增长（上限 0.9）。
@@ -123,11 +125,12 @@ GET /api/recommendations
   ↓              ↓
 向量路径          规则路径
 vectorService     加权评分算法
-.rankCafes()      (amenity频率×6 +
+.rankCafes()      (amenity频率×6，上限30 +
                   specialty命中×20 +
-                  价格匹配×15 +
-                  评分×4 +
-                  热度+5)
+                  价格匹配×15，轻微偏差×8 +
+                  评分 Math.min(20, rating×4) +
+                  热度 Math.min(15, reviewCount) +
+                  未访问加成+5)
 ```
 
 **偏好向量计算**（`computeUserEmbedding`）：
@@ -141,7 +144,16 @@ effectiveWeight_i = item.weight × 0.85^i
 
 加权求和后除以总权重得到加权平均向量，再经 L2 归一化得到 768 维偏好向量，持久化至 `user.preferenceEmbedding`。衰减因子 0.85 的选择使得最新行为的影响力约为 10 条前行为的 2 倍，既能快速响应用户近期偏好变化，又保留一定的历史稳定性。为避免频繁写入，`shouldUpdatePreference()` 函数实施 1 分钟节流，在此时间窗内重复触发的更新请求将被跳过。
 
-**规则路径**（新用户冷启动）：新用户尚无历史行为，`preferenceEmbedding` 为空，系统切换至基于统计频率的加权评分算法。分别统计用户历史评论和收藏中的设施频率（收藏权重加倍）、咖啡种类偏好及消费价格分布，综合打分后排序。该算法同时考虑评分加成与热度加成，并将已收藏的咖啡馆从候选集中排除。
+**规则路径**（新用户冷启动）：新用户尚无历史行为，`preferenceEmbedding` 为空，系统切换至基于统计频率的加权评分算法。规则路径加权评分算法各项权重如下：
+
+- 设施匹配（amenity）：每命中一个 +6分，上限30分
+- 特色种类（specialty）：命中偏好种类 +20分
+- 价格匹配：价格区间符合 +15分，轻微偏差 +8分
+- 综合评分：`Math.min(20, cafe.rating × 4)`，上限20分
+- 热度（评论数）：`Math.min(15, cafe.reviewCount)`，上限15分
+- 未访问加成：对用户未浏览过的咖啡馆 +5分（鼓励探索）
+
+分别统计用户历史评论和收藏中的设施频率（收藏权重加倍）、咖啡种类偏好及消费价格分布，综合打分后排序。该算法并将已收藏的咖啡馆从候选集中排除。
 
 **探索推荐**（`/api/recommendations/explore`）：为防止推荐结果同质化，探索推荐按咖啡种类（specialty）分组，在用户尚未评价过的种类中各选出评分最高的代表性咖啡馆，引导用户发现新类型的咖啡馆体验。
 
@@ -237,9 +249,9 @@ effectiveWeight_i = item.weight × 0.85^i
 
 ## 3.5 安全设计
 
-**JWT 认证流程**：用户登录成功后，后端在 JSON 响应体中同时返回短效访问令牌（`token`，7 天有效期）与长效刷新令牌（`refreshToken`，30 天有效期）。前端以 `withCredentials: true` 发起请求，将 token 存入内存并将用户对象缓存于 localStorage 供 UI 层使用（判断登录状态）。每次 API 请求在 `Authorization: Bearer <token>` 头部携带访问令牌，后端 `protect` 中间件验证后将用户信息注入 `req.user`。
+**JWT 认证流程**：用户登录后，后端在 JSON 响应体中返回访问令牌（`token`，7天有效）和刷新令牌（`refreshToken`，30天有效），由前端负责存储和管理。用户配置对象缓存于 `localStorage` 供界面状态使用。后续请求通过 `Authorization: Bearer <token>` 请求头携带令牌，后端 `protect` 中间件验证 JWT 签名。
 
-**Refresh Token 自动轮换**：Axios 响应拦截器监听 401 响应。当检测到访问令牌失效时，拦截器将后续并发请求压入等待队列，发起单次 `/api/auth/refresh` 请求；成功后以新 token 统一重发队列中的所有挂起请求；若刷新失败（refreshToken 亦过期），则清除本地认证状态并重定向至登录页，全程对业务代码透明。
+**Refresh Token 自动轮换**：Axios 响应拦截器在收到 401 时，将并发请求挂起（队列化），调用 `/api/auth/refresh` 获取新令牌后统一重发挂起的请求，确保用户无感知续期；若刷新失败（refreshToken 亦过期），则清除本地认证状态并重定向至登录页，全程对业务代码透明。
 
 **速率限制**：认证相关接口（`/api/auth`）配置严格限制，每个 IP 每分钟最多 5 次请求，防止暴力破解；通用接口配置宽松限制，每个 IP 每 15 分钟最多 100 次请求，防止爬虫滥用。限制策略由 express-rate-limit 实现，配置于 Express 中间件层，早于路由处理器执行。
 
