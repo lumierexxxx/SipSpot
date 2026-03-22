@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@contexts/AuthContext';
 import CafeCard from '@components/CafeCard';
 import { searchAndFilterCafes } from '@services/cafesAPI';
-import type { Cafe, FilterState } from '@/types/cafe';
+import type { ICafe, FilterState } from '@/types/cafe';
 
 import CafeListHeader from '@components/cafe-list/CafeListHeader';
 import CafeSearchBar from '@components/cafe-list/CafeSearchBar';
@@ -29,7 +29,7 @@ interface Pagination {
 }
 
 interface ApiResponse {
-    data?: Cafe[];
+    data?: ICafe[];
     pagination?: Pagination;
 }
 
@@ -38,7 +38,7 @@ export default function CafeListPage({ myOnly = false }: CafeListPageProps) {
     const { userId, isLoggedIn } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const [cafes, setCafes] = useState<Cafe[]>([]);
+    const [cafes, setCafes] = useState<ICafe[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
