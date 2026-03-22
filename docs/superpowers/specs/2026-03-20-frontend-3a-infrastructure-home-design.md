@@ -216,7 +216,7 @@ export const resendVerification = async (): Promise<void>
 
 ### `services/cafesAPI.ts`
 ```ts
-import type { ICafe, ApiResponse } from '@/types'
+import type { ICafe, AmenityKey, ApiResponse } from '@/types'
 
 export interface CafeSearchParams {
   page?: number
@@ -276,19 +276,38 @@ export function useGeolocation(): GeolocationState
 
 ## 5. AuthContext
 
-`AuthContext.jsx` → `AuthContext.tsx` with a typed context interface. No behavior changes.
+`AuthContext.jsx` → `AuthContext.tsx` with a typed context interface. No behavior changes — types are added over existing logic.
 
 ```ts
 // contexts/AuthContext.tsx
 import type { IUser } from '@/types'
 
 interface AuthContextValue {
+  // State
   user: IUser | null
-  isAuthenticated: boolean
+  loading: boolean
+  isLoggedIn: boolean
+  isAuthenticated: boolean  // alias for isLoggedIn
+
+  // Auth methods
   login: (email: string, password: string) => Promise<void>
+  register: (username: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   updateUser: (updated: Partial<IUser>) => void
-  loading: boolean
+  refreshUser: () => Promise<void>
+
+  // Permission helpers
+  hasRole: (role: string) => boolean
+  isAdmin: () => boolean
+  isOwner: (ownerId: string) => boolean
+  canEdit: (ownerId: string) => boolean
+
+  // Shortcut accessors (derived from user — null if not logged in)
+  userId: string | null
+  username: string | null
+  email: string | null
+  avatar: string | null
+  role: 'user' | 'admin'
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -356,13 +375,15 @@ declare module 'i18next' {
 
 ## 7. `utils/homeData.ts`
 
-Migrate `homeData.js` → `homeData.ts`. Add types for `VIBES`, `CURATED_REVIEWS`, and helper functions. The `VIBES` array keeps the `filter` string pattern (URL query string appended to `/cafes?`) — no type changes needed to how vibes are used in `ExploreByVibeSection`.
+Migrate `homeData.js` → `homeData.ts`. Add types for all exports. The `VIBES` array keeps the `filter` string pattern (URL query string appended to `/cafes?`) — vibe card labels come from i18n (`t('vibes.items.' + i + '.name')`), not from the `Vibe` interface. No `label` field is needed.
 
 ```ts
+import type { ICafe, AmenityKey } from '@/types'
+
 export interface Vibe {
   emoji: string
   gradient: string
-  filter: string   // URL query string, e.g. 'amenity=work_friendly'
+  filter: string   // URL query string appended to /cafes? e.g. 'amenity=work_friendly'
 }
 
 export interface CuratedReview {
@@ -377,14 +398,31 @@ export interface CuratedReview {
   image: string
 }
 
-// Update VIBES filter strings to use English short keys (post-migration)
-// e.g. 'amenity=work_friendly' instead of URL-encoded Chinese
-export const VIBES: Vibe[] = [...]
+export interface CafeBadge {
+  key: 'newOpening' | 'editorsChoice' | 'verified' | 'topPick' | 'featured'
+  color: string
+}
 
-export const CURATED_REVIEWS: CuratedReview[] = [...]
+export type CategoryFilter = (cafe: ICafe) => boolean
+
+// Constants
+export const CATEGORIES: string[]
+export const CATEGORY_FILTERS: Record<string, CategoryFilter>
+export const VIBES: Vibe[]
+export const CURATED_REVIEWS: CuratedReview[]
+export const FALLBACK_IMAGES: string[]
+
+// Helper functions
+export function getCafeBadge(cafe: ICafe): CafeBadge
+export function getCafeTags(cafe: ICafe): string[]
+export function getCafeHours(cafe: ICafe): string | null
+export function getCafeImage(cafe: ICafe, index?: number): string
+export function getCafeAmenityIcons(cafe: ICafe): Array<'wifi' | 'power'>
 ```
 
-> **Note on VIBES filter strings:** The existing `filter` values are URL-encoded Chinese amenity strings. After the DB migration to English short keys, these must be updated to use English short keys (e.g. `amenity=work_friendly`). Update as part of this migration.
+> **Note on VIBES filter strings:** The existing `filter` values are URL-encoded Chinese amenity strings. Update them to use English short keys as part of this migration (e.g. `amenity=work_friendly` instead of `amenity=%E9%80%82%E5%90%88%E5%B7%A5%E4%BD%9C...`).
+>
+> **Note on helper functions:** `getCafeTags` and `getCafeAmenityIcons` currently use `AMENITY_TO_ENGLISH` and `SPECIALTY_TO_ENGLISH` maps keyed on Chinese strings. Update these helpers to work with the new English short key values (e.g. `cafe.amenities.includes('wifi')` instead of `cafe.amenities.includes('WiFi')`). The translation maps (`AMENITY_TO_ENGLISH`, `SPECIALTY_TO_ENGLISH`) can be removed — display labels now come from i18n JSON.
 
 ---
 
@@ -406,15 +444,20 @@ interface NavbarProps {
 
 ### Prop interfaces
 
-**`HeroSection.tsx`** — no props (manages own state, renders HeroSearchBar + AISearchBar + HeroStats)
+**`HeroSection.tsx`** — renders child components via `children` prop
+```ts
+interface HeroSectionProps {
+  children: React.ReactNode
+}
+```
 
 **`HeroSearchBar.tsx`**
 ```ts
 interface HeroSearchBarProps {
   query: string
   location: string
-  onQueryChange: (value: string) => void
-  onLocationChange: (value: string) => void
+  onQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onLocationChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onSubmit: (e: React.FormEvent) => void
 }
 // Replace <input> with <Input> from ui/input
@@ -490,8 +533,14 @@ interface StarRatingProps {
 
 **`HowItWorksSection.tsx`** — no props (uses HOW_IT_WORKS_STEPS constant from homeData.ts)
 
-**`NewsletterSection.tsx`** — no props (manages own email state and submission)
+**`NewsletterSection.tsx`** — state is lifted to `Home.tsx`; receives 4 props
 ```ts
+interface NewsletterSectionProps {
+  email: string
+  submitted: boolean
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onSubmit: (e: React.FormEvent) => void
+}
 // Replace <input> with <Input> from ui/input
 // Replace <button> with <Button> from ui/button
 ```
