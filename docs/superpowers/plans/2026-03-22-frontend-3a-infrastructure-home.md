@@ -72,6 +72,8 @@ export interface ApiResponse<T = unknown> {
 
 // Note: AmenityKey and SpecialtyType are in cafe.ts.
 // TypeScript handles this circular type-only import correctly — types are erased at runtime.
+// HOWEVER: the old cafe.ts does not export AmenityKey/SpecialtyType yet. `tsc` will report
+// an error on this import until Step 4 replaces cafe.ts. This is expected — do not stop.
 import type { AmenityKey, SpecialtyType } from './cafe'
 
 export interface IUser {
@@ -238,6 +240,7 @@ export * from './api'
 
 The two known consumers with non-alias imports that the grep may miss — update these manually:
 - `frontend/src/components/CafeCard.tsx` line 16: `import type { Cafe } from '../types/cafe'` → `import type { ICafe } from '../types/cafe'` and rename all `Cafe` usages to `ICafe`
+  - **Note:** `CafeCard.tsx` will have additional tsc errors beyond the rename (it uses `cafe.specialty` singular, Chinese day strings, old amenity map keys). These are expected and will be fixed in the 3B spec. Do NOT fix them now — just do the rename.
 - `frontend/src/pages/CafeListPage.tsx` line 10: `import type { Cafe, FilterState } from '@/types/cafe'` → `import type { ICafe, FilterState } from '@/types/cafe'` and rename
 
 Run the broad grep to find any others:
@@ -341,21 +344,13 @@ declare module 'i18next' {
 cd frontend && npx tsc --noEmit 2>&1 | head -40
 ```
 
-- [ ] **Step 4: Run dev server briefly to confirm i18n loads**
-
-```bash
-cd frontend && npm run dev
-```
-
-Open `http://localhost:5173` — the Home page should render with translations. Stop the server.
-
 - [ ] **Step 5: Run dev server briefly to confirm i18n loads**
 
 ```bash
 cd frontend && npm run dev
 ```
 
-Open `http://localhost:5173` — the Home page should render with translations (Chinese by default). Stop the server.
+Open `http://localhost:5173` — the Home page should render in Chinese by default. Stop the server.
 
 - [ ] **Step 6: Commit**
 
