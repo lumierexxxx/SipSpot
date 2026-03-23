@@ -16,7 +16,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * @param {number} options.retryCount - 重试次数（默认0）
  * @param {number} options.retryDelay - 重试延迟（毫秒，默认1000）
  */
-export const useAPI = (apiFunc, options = {}) => {
+export const useAPI = <T>(apiFunc: () => Promise<T>, options: {
+    immediate?: boolean
+    deps?: unknown[]
+    onSuccess?: (data: T) => void
+    onError?: (error: unknown) => void
+    retryCount?: number
+    retryDelay?: number
+} = {}) => {
     const {
         immediate = true,
         deps = [],
@@ -26,23 +33,23 @@ export const useAPI = (apiFunc, options = {}) => {
         retryDelay = 1000
     } = options;
 
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(immediate);
-    const [error, setError] = useState(null);
-    const [isSuccess, setIsSuccess] = useState(false);
+    const [data, setData] = useState<T | null>(null);
+    const [loading, setLoading] = useState<boolean>(immediate);
+    const [error, setError] = useState<unknown>(null);
+    const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
     const isMountedRef = useRef(true);
     const retryCountRef = useRef(0);
-    const abortControllerRef = useRef(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // 🔧 新增：使用 ref 固定 apiFunc，避免匿名函数导致 useCallback 无限重建
-    const apiFuncRef = useRef(apiFunc); // 🔧 修改
+    const apiFuncRef = useRef<() => Promise<T>>(apiFunc); // 🔧 修改
     apiFuncRef.current = apiFunc;       // 🔧 修改
 
     // ============================================
     // 执行API调用
     // ============================================
-    const execute = useCallback(async (...args) => {
+    const execute = useCallback(async () => {
         try {
             // 取消之前的请求
             if (abortControllerRef.current) {
@@ -56,19 +63,19 @@ export const useAPI = (apiFunc, options = {}) => {
             setIsSuccess(false);
 
             // 🔧 修改：改为使用 apiFuncRef.current，而不是 apiFunc
-            const result = await apiFuncRef.current(...args); // 🔧 修改
+            const result = await apiFuncRef.current(); // 🔧 修改
 
             if (!isMountedRef.current) return;
 
             // 处理响应
-            const responseData = result?.data || result;
-            setData(responseData);
+            const responseData = (result as { data?: T } | T & { data?: T })?.data ?? result;
+            setData(responseData as T);
             setIsSuccess(true);
             setError(null);
 
             // 成功回调
             if (onSuccess) {
-                onSuccess(responseData);
+                onSuccess(responseData as T);
             }
 
             // 重置重试计数
@@ -80,7 +87,7 @@ export const useAPI = (apiFunc, options = {}) => {
             if (!isMountedRef.current) return;
 
             // 如果是取消请求，不处理错误
-            if (err.name === 'AbortError') {
+            if ((err as { name?: string })?.name === 'AbortError') {
                 return;
             }
 
@@ -99,7 +106,7 @@ export const useAPI = (apiFunc, options = {}) => {
 
                 setTimeout(() => {
                     if (isMountedRef.current) {
-                        execute(...args);
+                        execute();
                     }
                 }, retryDelay);
             }
@@ -160,23 +167,27 @@ export const useAPI = (apiFunc, options = {}) => {
 // 其余 Hook 未被修改
 // ============================================
 
-export const useLazyAPI = (apiFunc, options = {}) => {
-    return useAPI(apiFunc, { ...options, immediate: false });
+export const useLazyAPI = <T>(apiFunc: () => Promise<T>, options = {}) => {
+    return useAPI<T>(apiFunc, { ...options, immediate: false });
 };
 
-export const usePaginatedAPI = (apiFunc, initialParams = {}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const usePaginatedAPI = (_apiFunc: any, _initialParams = {}) => {
     // ...（完全不动）
 };
 
-export const useCachedAPI = (cacheKey, apiFunc, options = {}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useCachedAPI = (_cacheKey: any, _apiFunc: any, _options = {}) => {
     // ...（完全不动）
 };
 
-export const useMultipleAPIs = (apiFuncs, options = {}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useMultipleAPIs = (_apiFuncs: any, _options = {}) => {
     // ...（完全不动）
 };
 
-export const useMutation = (mutationFunc, options = {}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useMutation = (_mutationFunc: any, _options = {}) => {
     // ...（完全不动）
 };
 

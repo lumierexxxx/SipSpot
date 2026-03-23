@@ -3,8 +3,17 @@
 // ============================================
 import { Mail, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Input } from '@components/ui/input';
+import { Button } from '@components/ui/button';
 
-export default function NewsletterSection({ email, submitted, onChange, onSubmit }) {
+interface NewsletterSectionProps {
+    email: string
+    submitted: boolean
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onSubmit: (e: React.FormEvent) => void
+}
+
+export default function NewsletterSection({ email, submitted, onChange, onSubmit }: NewsletterSectionProps) {
     const { t } = useTranslation('home');
 
     return (
@@ -27,7 +36,7 @@ export default function NewsletterSection({ email, submitted, onChange, onSubmit
                     </div>
                 ) : (
                     <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                        <input
+                        <Input
                             type="email"
                             value={email}
                             onChange={onChange}
@@ -36,13 +45,13 @@ export default function NewsletterSection({ email, submitted, onChange, onSubmit
                             style={{ fontSize: '0.95rem' }}
                             required
                         />
-                        <button
+                        <Button
                             type="submit"
                             className="bg-stone-900 hover:bg-stone-800 text-white rounded-xl px-6 py-3 transition-colors flex-shrink-0"
                             style={{ fontSize: '0.9rem', fontWeight: 600 }}
                         >
                             {t('newsletter.button')}
-                        </button>
+                        </Button>
                     </form>
                 )}
 

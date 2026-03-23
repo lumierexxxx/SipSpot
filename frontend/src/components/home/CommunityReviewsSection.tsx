@@ -4,8 +4,13 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReviewCard from './ReviewCard';
+import type { CuratedReview } from '@utils/homeData';
 
-export default function CommunityReviewsSection({ reviews }) {
+interface CommunityReviewsSectionProps {
+    reviews: CuratedReview[]
+}
+
+export default function CommunityReviewsSection({ reviews }: CommunityReviewsSectionProps) {
     const { t } = useTranslation('home');
 
     return (

@@ -35,8 +35,8 @@ export default function HowItWorksSection() {
                                 <span className="text-stone-300 mb-2" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em' }}>
                                     STEP {step.step}
                                 </span>
-                                <h3 className="text-stone-900 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>{t('howItWorks.steps.' + i + '.title')}</h3>
-                                <p className="text-stone-500" style={{ fontSize: '0.88rem', lineHeight: 1.6 }}>{t('howItWorks.steps.' + i + '.description')}</p>
+                                <h3 className="text-stone-900 mb-2" style={{ fontSize: '1rem', fontWeight: 600 }}>{t(('howItWorks.steps.' + i + '.title') as any)}</h3>
+                                <p className="text-stone-500" style={{ fontSize: '0.88rem', lineHeight: 1.6 }}>{t(('howItWorks.steps.' + i + '.description') as any)}</p>
                             </div>
                         </div>
                     ))}

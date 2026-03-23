@@ -1,12 +1,17 @@
 // ============================================
 // SipSpot — HeroSection
 // ============================================
+import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1642315160505-b3dff3a3c8b9?w=1080&q=80';
 
-export default function HeroSection({ children }) {
+interface HeroSectionProps {
+    children: React.ReactNode
+}
+
+export default function HeroSection({ children }: HeroSectionProps) {
     const { t } = useTranslation('home');
 
     return (

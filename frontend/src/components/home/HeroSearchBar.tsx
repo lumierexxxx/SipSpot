@@ -1,10 +1,21 @@
 // ============================================
 // SipSpot — HeroSearchBar
 // ============================================
+import React from 'react';
 import { Search, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Input } from '@components/ui/input';
+import { Button } from '@components/ui/button';
 
-export default function HeroSearchBar({ query, location, onQueryChange, onLocationChange, onSubmit }) {
+interface HeroSearchBarProps {
+    query: string
+    location: string
+    onQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onLocationChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onSubmit: (e: React.FormEvent) => void
+}
+
+export default function HeroSearchBar({ query, location, onQueryChange, onLocationChange, onSubmit }: HeroSearchBarProps) {
     const { t } = useTranslation('home');
 
     return (
@@ -14,34 +25,34 @@ export default function HeroSearchBar({ query, location, onQueryChange, onLocati
         >
             <div className="flex-1 flex items-center gap-3 px-4 py-2">
                 <Search className="w-5 h-5 text-stone-400 flex-shrink-0" />
-                <input
+                <Input
                     type="text"
                     placeholder={t('hero.searchName')}
                     value={query}
                     onChange={onQueryChange}
-                    className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent"
+                    className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent border-none shadow-none focus-visible:ring-0 h-auto p-0"
                     style={{ fontSize: '0.95rem' }}
                 />
             </div>
             <div className="hidden sm:block w-px bg-stone-200 my-2" />
             <div className="flex-1 flex items-center gap-3 px-4 py-2">
                 <MapPin className="w-5 h-5 text-stone-400 flex-shrink-0" />
-                <input
+                <Input
                     type="text"
                     placeholder={t('hero.searchCity')}
                     value={location}
                     onChange={onLocationChange}
-                    className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent"
+                    className="flex-1 outline-none text-stone-800 placeholder:text-stone-400 bg-transparent border-none shadow-none focus-visible:ring-0 h-auto p-0"
                     style={{ fontSize: '0.95rem' }}
                 />
             </div>
-            <button
+            <Button
                 type="submit"
-                className="bg-amber-700 hover:bg-amber-800 text-white px-7 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 flex-shrink-0"
+                className="bg-amber-700 hover:bg-amber-800 text-white px-7 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 flex-shrink-0 h-auto"
             >
                 <Search className="w-4 h-4" />
                 <span>{t('hero.searchButton')}</span>
-            </button>
+            </Button>
         </form>
     );
 }

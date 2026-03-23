@@ -4,6 +4,20 @@
 // ============================================
 
 import { get, post, put, del, uploadFile } from './api';
+import type { ICafe, AmenityKey, ApiResponse } from '@/types'
+
+export interface CafeSearchParams {
+    page?: number
+    limit?: number
+    city?: string
+    price?: number[]
+    amenities?: AmenityKey[]
+    sort?: string
+    query?: string
+    minRating?: number
+    maxPrice?: number
+    search?: string
+}
 
 // ============================================
 // 咖啡店 API
@@ -21,7 +35,7 @@ import { get, post, put, del, uploadFile } from './api';
  * @param {number} params.limit - 每页数量
  * @param {string} params.sort - 排序方式
  */
-export const getCafes = (params = {}) => {
+export const getCafes = (params: CafeSearchParams = {}): Promise<ApiResponse<ICafe[]>> => {
     return get('/cafes', { params });
 };
 
@@ -33,7 +47,7 @@ export const getCafes = (params = {}) => {
  * @param {number} params.distance - 搜索半径（米）默认5000
  * @param {number} params.limit - 返回数量
  */
-export const getNearbyCafes = (params) => {
+export const getNearbyCafes = (params: { lat: number; lng: number; radius?: number; distance?: number; limit?: number }): Promise<ApiResponse<ICafe[]>> => {
     return get('/cafes/nearby', { params });
 };
 
@@ -57,7 +71,7 @@ export const getTopRatedCafes = (params = {}) => {
  * @param {string|string[]} params.amenities - 设施过滤
  * @param {number} params.limit - 返回数量
  */
-export const searchCafes = (params) => {
+export const searchCafes = (params: Record<string, unknown>): Promise<ApiResponse<ICafe[]>> => {
     return get('/cafes/search', { params });
 };
 
@@ -68,7 +82,7 @@ export const searchCafes = (params) => {
  * @param {string} params.city - 城市过滤
  * @param {number} params.limit - 返回数量
  */
-export const getCafesByAmenities = (amenities, params = {}) => {
+export const getCafesByAmenities = (amenities: string | string[], params: Record<string, unknown> = {}) => {
     const amenityString = Array.isArray(amenities) ? amenities.join(',') : amenities;
     return get(`/cafes/amenities/${amenityString}`, { params });
 };
@@ -77,7 +91,7 @@ export const getCafesByAmenities = (amenities, params = {}) => {
  * 获取单个咖啡店详情
  * @param {string} cafeId - 咖啡店ID
  */
-export const getCafeById = (cafeId) => {
+export const getCafeById = (cafeId: string): Promise<ApiResponse<ICafe>> => {
     return get(`/cafes/${cafeId}`);
 };
 
@@ -85,7 +99,7 @@ export const getCafeById = (cafeId) => {
  * 获取咖啡店统计信息
  * @param {string} cafeId - 咖啡店ID
  */
-export const getCafeStats = (cafeId) => {
+export const getCafeStats = (cafeId: string) => {
     return get(`/cafes/${cafeId}/stats`);
 };
 
@@ -94,10 +108,10 @@ export const getCafeStats = (cafeId) => {
  * @param {Object} cafeData - 咖啡店数据
  * @param {File[]} images - 图片文件数组（可选）
  */
-export const createCafe = (cafeData, images = []) => {
+export const createCafe = (cafeData: Record<string, unknown>, images: File[] = []): Promise<ApiResponse<ICafe>> => {
     if (images && images.length > 0) {
         // 有图片，使用 FormData
-        return uploadFile('/cafes', images, 'images', cafeData);
+        return uploadFile('/cafes', images, 'images', cafeData) as Promise<ApiResponse<ICafe>>;
     } else {
         // 无图片，直接发送 JSON
         return post('/cafes', cafeData);
@@ -109,7 +123,7 @@ export const createCafe = (cafeData, images = []) => {
  * @param {string} cafeId - 咖啡店ID
  * @param {Object} updateData - 更新的数据
  */
-export const updateCafe = (cafeId, updateData) => {
+export const updateCafe = (cafeId: string, updateData: Record<string, unknown>): Promise<ApiResponse<ICafe>> => {
     return put(`/cafes/${cafeId}`, updateData);
 };
 
@@ -117,7 +131,7 @@ export const updateCafe = (cafeId, updateData) => {
  * 删除咖啡店
  * @param {string} cafeId - 咖啡店ID
  */
-export const deleteCafe = (cafeId) => {
+export const deleteCafe = (cafeId: string): Promise<ApiResponse<void>> => {
     return del(`/cafes/${cafeId}`);
 };
 
@@ -126,7 +140,7 @@ export const deleteCafe = (cafeId) => {
  * @deprecated 请使用 usersAPI.addToFavorites
  * @param {string} cafeId - 咖啡店ID
  */
-export const addToFavorites = (cafeId) => {
+export const addToFavorites = (cafeId: string) => {
     // 迁移提示：此函数已迁移到 usersAPI.js
     // 新端点：POST /api/users/me/favorites/:cafeId
     return post(`/users/me/favorites/${cafeId}`);
@@ -137,10 +151,23 @@ export const addToFavorites = (cafeId) => {
  * @deprecated 请使用 usersAPI.removeFromFavorites
  * @param {string} cafeId - 咖啡店ID
  */
-export const removeFromFavorites = (cafeId) => {
+export const removeFromFavorites = (cafeId: string) => {
     // 迁移提示：此函数已迁移到 usersAPI.js
     // 新端点：DELETE /api/users/me/favorites/:cafeId
     return del(`/users/me/favorites/${cafeId}`);
+};
+
+/**
+ * 切换咖啡店收藏状态
+ * @param {string} cafeId - 咖啡店ID
+ * @param {boolean} shouldFavorite - true 表示添加，false 表示移除
+ */
+export const toggleFavorite = async (cafeId: string, shouldFavorite: boolean): Promise<void> => {
+    if (shouldFavorite) {
+        await addToFavorites(cafeId);
+    } else {
+        await removeFromFavorites(cafeId);
+    }
 };
 
 // ============================================
@@ -155,7 +182,7 @@ export const removeFromFavorites = (cafeId) => {
  * @param {number} params.limit - 每页数量
  * @param {string} params.sort - 排序方式
  */
-export const getReviews = (cafeId, params = {}) => {
+export const getReviews = (cafeId: string, params: Record<string, unknown> = {}) => {
     return get(`/cafes/${cafeId}/reviews`, { params });
 };
 
@@ -164,7 +191,7 @@ export const getReviews = (cafeId, params = {}) => {
  * @param {string} cafeId - 咖啡店ID
  * @param {number} limit - 返回数量
  */
-export const getMostHelpfulReviews = (cafeId, limit = 5) => {
+export const getMostHelpfulReviews = (cafeId: string, limit = 5) => {
     return get(`/cafes/${cafeId}/reviews/helpful`, { params: { limit } });
 };
 
@@ -172,7 +199,7 @@ export const getMostHelpfulReviews = (cafeId, limit = 5) => {
  * 获取评论情感统计
  * @param {string} cafeId - 咖啡店ID
  */
-export const getReviewSentimentStats = (cafeId) => {
+export const getReviewSentimentStats = (cafeId: string) => {
     return get(`/cafes/${cafeId}/reviews/sentiment`);
 };
 
@@ -186,7 +213,7 @@ export const getReviewSentimentStats = (cafeId) => {
  * @param {Date} reviewData.visitDate - 访问日期（可选）
  * @param {File[]} images - 评论图片（可选）
  */
-export const createReview = (cafeId, reviewData, images = []) => {
+export const createReview = (cafeId: string, reviewData: Record<string, unknown>, images: File[] = []) => {
     if (images && images.length > 0) {
         // 有图片，使用 FormData
         return uploadFile(`/cafes/${cafeId}/reviews`, images, 'images', reviewData);
@@ -204,7 +231,7 @@ export const createReview = (cafeId, reviewData, images = []) => {
  * 获取单个评论
  * @param {string} reviewId - 评论ID
  */
-export const getReviewById = (reviewId) => {
+export const getReviewById = (reviewId: string) => {
     return get(`/reviews/${reviewId}`);
 };
 
@@ -213,7 +240,7 @@ export const getReviewById = (reviewId) => {
  * @param {string} reviewId - 评论ID
  * @param {Object} updateData - 更新的数据
  */
-export const updateReview = (reviewId, updateData) => {
+export const updateReview = (reviewId: string, updateData: Record<string, unknown>) => {
     return put(`/reviews/${reviewId}`, updateData);
 };
 
@@ -221,7 +248,7 @@ export const updateReview = (reviewId, updateData) => {
  * 删除评论
  * @param {string} reviewId - 评论ID
  */
-export const deleteReview = (reviewId) => {
+export const deleteReview = (reviewId: string) => {
     return del(`/reviews/${reviewId}`);
 };
 
@@ -230,7 +257,7 @@ export const deleteReview = (reviewId) => {
  * @param {string} reviewId - 评论ID
  * @param {string} voteType - 投票类型：'helpful' 或 'not-helpful'
  */
-export const voteReviewHelpful = (reviewId, voteType) => {
+export const voteReviewHelpful = (reviewId: string, voteType: string) => {
     return post(`/reviews/${reviewId}/helpful`, { voteType });
 };
 
@@ -238,7 +265,7 @@ export const voteReviewHelpful = (reviewId, voteType) => {
  * 取消评论投票
  * @param {string} reviewId - 评论ID
  */
-export const removeReviewVote = (reviewId) => {
+export const removeReviewVote = (reviewId: string) => {
     return del(`/reviews/${reviewId}/helpful`);
 };
 
@@ -247,7 +274,7 @@ export const removeReviewVote = (reviewId) => {
  * @param {string} reviewId - 评论ID
  * @param {string} reason - 举报原因（可选）
  */
-export const reportReview = (reviewId, reason = '') => {
+export const reportReview = (reviewId: string, reason = '') => {
     return post(`/reviews/${reviewId}/report`, { reason });
 };
 
@@ -256,7 +283,7 @@ export const reportReview = (reviewId, reason = '') => {
  * @param {string} reviewId - 评论ID
  * @param {string} content - 回复内容
  */
-export const addOwnerResponse = (reviewId, content) => {
+export const addOwnerResponse = (reviewId: string, content: string) => {
     return post(`/reviews/${reviewId}/response`, { content });
 };
 
@@ -264,7 +291,7 @@ export const addOwnerResponse = (reviewId, content) => {
  * 触发AI分析
  * @param {string} reviewId - 评论ID
  */
-export const analyzeReview = (reviewId) => {
+export const analyzeReview = (reviewId: string) => {
     return post(`/reviews/${reviewId}/analyze`);
 };
 
@@ -276,7 +303,7 @@ export const analyzeReview = (reviewId) => {
  * 获取咖啡店完整信息（包含统计和评论）
  * @param {string} cafeId - 咖啡店ID
  */
-export const getCafeFullInfo = async (cafeId) => {
+export const getCafeFullInfo = async (cafeId: string) => {
     try {
         const [cafe, stats, reviews, sentiment] = await Promise.all([
             getCafeById(cafeId),
@@ -302,7 +329,7 @@ export const getCafeFullInfo = async (cafeId) => {
  * @param {number} location.lng - 经度
  * @param {number} location.lat - 纬度
  */
-export const getRecommendedCafes = async (location) => {
+export const getRecommendedCafes = async (location: { lng: number; lat: number }) => {
     try {
         const [nearby, topRated] = await Promise.all([
             getNearbyCafes({
@@ -327,7 +354,7 @@ export const getRecommendedCafes = async (location) => {
  * 搜索并过滤咖啡店
  * @param {Object} filters - 过滤条件
  */
-export const searchAndFilterCafes = (filters) => {
+export const searchAndFilterCafes = (filters: Record<string, unknown>) => {
     const { query, city, minRating, maxPrice, amenities, page = 1, limit = 20 } = filters;
 
     if (query) {
@@ -343,33 +370,14 @@ export const searchAndFilterCafes = (filters) => {
     } else {
         // 否则使用普通获取API
         return getCafes({
-            city,
-            minRating,
-            maxPrice,
-            amenities,
-            page,
-            limit,
+            city: city as string | undefined,
+            minRating: minRating as number | undefined,
+            maxPrice: maxPrice as number | undefined,
+            amenities: amenities as AmenityKey[] | undefined,
+            page: page as number | undefined,
+            limit: limit as number | undefined,
             sort: '-rating'
         });
-    }
-};
-
-/**
- * 切换收藏状态
- * @param {string} cafeId - 咖啡店ID
- * @param {boolean} isFavorited - 当前是否已收藏
- */
-export const toggleFavorite = async (cafeId, isFavorited) => {
-    try {
-        if (isFavorited) {
-            await removeFromFavorites(cafeId);
-            return false;
-        } else {
-            await addToFavorites(cafeId);
-            return true;
-        }
-    } catch (error) {
-        throw error;
     }
 };
 
@@ -390,7 +398,8 @@ export default {
     deleteCafe,
     addToFavorites,
     removeFromFavorites,
-    
+    toggleFavorite,
+
     // Review APIs (nested)
     getReviews,
     getMostHelpfulReviews,
@@ -410,6 +419,5 @@ export default {
     // Combined methods
     getCafeFullInfo,
     getRecommendedCafes,
-    searchAndFilterCafes,
-    toggleFavorite
+    searchAndFilterCafes
 };

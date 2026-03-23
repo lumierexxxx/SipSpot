@@ -3,7 +3,11 @@
 // ============================================
 import { Star } from 'lucide-react';
 
-export default function StarRating({ rating }) {
+interface StarRatingProps {
+    rating: number
+}
+
+export default function StarRating({ rating }: StarRatingProps) {
     return (
         <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map(i => (

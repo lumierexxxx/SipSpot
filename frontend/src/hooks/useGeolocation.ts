@@ -5,14 +5,28 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
-/**
- * 默认配置选项
- */
-const DEFAULT_OPTIONS = {
-    enableHighAccuracy: true,  // 高精度模式
-    timeout: 10000,            // 10秒超时
-    maximumAge: 60000          // 缓存1分钟
-};
+interface SipSpotPosition {
+    latitude: number
+    longitude: number
+    accuracy?: number | null
+    altitude?: number | null
+    altitudeAccuracy?: number | null
+    heading?: number | null
+    speed?: number | null
+    timestamp?: number
+    savedAt?: string
+    city?: string
+}
+
+interface GeoError {
+    message: string
+    type: string
+    code?: number
+}
+
+type GeoPermissionState = 'granted' | 'denied' | 'prompt'
+
+export type { SipSpotPosition, GeoError }
 
 /**
  * 默认位置（如果获取失败，使用这个）
@@ -30,13 +44,13 @@ const DEFAULT_LOCATION = {
  * @param {boolean} watch - 是否持续追踪位置（默认false）
  * @param {boolean} autoFetch - 是否自动获取位置（默认true）
  */
-export const useGeolocation = (options = {}, watch = false, autoFetch = true) => {
-    const [position, setPosition] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [permission, setPermission] = useState('prompt'); // 'granted' | 'denied' | 'prompt'
+export const useGeolocation = (_options = {}, watch = false, autoFetch = true) => {
+    const [position, setPosition] = useState<SipSpotPosition | null>(null);
+    const [error, setError] = useState<GeoError | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [permission, setPermission] = useState<GeoPermissionState>('prompt');
     
-    const watchIdRef = useRef(null);
+    const watchIdRef = useRef<number | null>(null);
     const isMountedRef = useRef(true);
 
     // 合并选项
@@ -54,7 +68,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     // ============================================
     // 成功回调
     // ============================================
-    const handleSuccess = useCallback((pos) => {
+    const handleSuccess = useCallback((pos: globalThis.GeolocationPosition) => {
         if (!isMountedRef.current) return;
 
         const locationData = {
@@ -87,7 +101,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     // ============================================
     // 错误回调
     // ============================================
-    const handleError = useCallback((err) => {
+    const handleError = useCallback((err: GeolocationPositionError) => {
         if (!isMountedRef.current) return;
 
         let errorMessage = '无法获取位置信息';
@@ -133,7 +147,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
                 const lastLocation = JSON.parse(saved);
                 const savedAt = new Date(lastLocation.savedAt);
                 const now = new Date();
-                const diffMinutes = (now - savedAt) / 1000 / 60;
+                const diffMinutes = (now.getTime() - savedAt.getTime()) / 1000 / 60;
 
                 // 如果保存时间在30分钟内，使用保存的位置
                 if (diffMinutes < 30) {
@@ -269,7 +283,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     // ============================================
     // 计算两点之间的距离（千米）
     // ============================================
-    const calculateDistance = useCallback((lat1, lon1, lat2, lon2) => {
+    const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number) => {
         const R = 6371; // 地球半径（千米）
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
         const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -287,7 +301,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     // 获取到某个位置的距离
     // ============================================
     const getDistanceTo = useCallback(
-        (targetLat, targetLon) => {
+        (targetLat: number, targetLon: number) => {
             if (!position) return null;
             return calculateDistance(
                 position.latitude,
@@ -302,7 +316,7 @@ export const useGeolocation = (options = {}, watch = false, autoFetch = true) =>
     // ============================================
     // 格式化距离显示
     // ============================================
-    const formatDistance = useCallback((kilometers) => {
+    const formatDistance = useCallback((kilometers: number | null) => {
         if (kilometers === null) return '未知';
         if (kilometers < 1) {
             return `${Math.round(kilometers * 1000)}米`;

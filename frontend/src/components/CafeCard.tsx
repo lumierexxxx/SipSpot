@@ -13,7 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@contexts/AuthContext';
 import { toggleFavorite } from '@services/usersAPI';
-import type { Cafe } from '../types/cafe';
+import type { ICafe } from '@/types/cafe';
 
 // ── Maps ─────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1642315160505-b3dff3a3
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getCafeBadge(cafe: Cafe): { key: string; color: string } | null {
+function getCafeBadge(cafe: ICafe): { key: string; color: string } | null {
     if (!cafe.createdAt) return null;
     const ageMs = Date.now() - new Date(cafe.createdAt).getTime();
     if (ageMs < 60 * 24 * 60 * 60 * 1000) return { key: 'newOpening',    color: 'bg-sky-600' };
@@ -60,7 +60,7 @@ function getCafeBadge(cafe: Cafe): { key: string; color: string } | null {
     return null;
 }
 
-function getCafeTags(cafe: Cafe): string[] {
+function getCafeTags(cafe: ICafe): string[] {
     const tags: string[] = [];
     if (cafe.specialty) {
         const en = SPECIALTY_MAP[cafe.specialty];
@@ -73,7 +73,7 @@ function getCafeTags(cafe: Cafe): string[] {
     return tags.slice(0, 3);
 }
 
-function getTodayHours(cafe: Cafe): string | null {
+function getTodayHours(cafe: ICafe): string | null {
     const today = DAY_NAMES[new Date().getDay()];
     const entry = cafe.openingHours?.find(h => h.day === today);
     return entry ? `${entry.open} – ${entry.close}` : null;
@@ -84,7 +84,7 @@ function formatDistance(km: number | null | undefined): string {
     return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
-function resolveImage(cafe: Cafe): string {
+function resolveImage(cafe: ICafe): string {
     const first = cafe.images?.[0];
     if (!first) return FALLBACK_IMAGE;
     if (typeof first === 'string') return first;
@@ -103,7 +103,7 @@ function AmenityIcon({ amenity }: { amenity: string }) {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CafeCardProps {
-    cafe: Cafe;
+    cafe: ICafe;
     view?: 'grid' | 'list';
     onFavoriteToggle?: (id: string, state: boolean) => void;
     showDistance?: boolean;
