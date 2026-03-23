@@ -157,6 +157,19 @@ export const removeFromFavorites = (cafeId: string) => {
     return del(`/users/me/favorites/${cafeId}`);
 };
 
+/**
+ * 切换咖啡店收藏状态
+ * @param {string} cafeId - 咖啡店ID
+ * @param {boolean} shouldFavorite - true 表示添加，false 表示移除
+ */
+export const toggleFavorite = async (cafeId: string, shouldFavorite: boolean): Promise<void> => {
+    if (shouldFavorite) {
+        await addToFavorites(cafeId);
+    } else {
+        await removeFromFavorites(cafeId);
+    }
+};
+
 // ============================================
 // 评论 API（嵌套在咖啡店下）
 // ============================================
@@ -385,7 +398,8 @@ export default {
     deleteCafe,
     addToFavorites,
     removeFromFavorites,
-    
+    toggleFavorite,
+
     // Review APIs (nested)
     getReviews,
     getMostHelpfulReviews,

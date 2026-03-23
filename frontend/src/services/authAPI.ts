@@ -202,6 +202,13 @@ export const refreshToken = async (): Promise<ApiResponse<unknown>> => {
 };
 
 /**
+ * 重新发送邮箱验证邮件
+ */
+export const resendVerificationEmail = async (): Promise<ApiResponse<unknown>> => {
+    return post('/auth/resend-verification', {});
+};
+
+/**
  * 上传用户头像
  * @param {File} avatarFile - 头像文件
  */
@@ -466,6 +473,7 @@ export default {
     forgotPassword,
     resetPassword,
     refreshToken,
+    resendVerificationEmail,
     uploadAvatar,
     
     // 用户数据（已废弃，建议使用 usersAPI.js）

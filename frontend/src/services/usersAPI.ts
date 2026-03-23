@@ -26,6 +26,9 @@ export const getFavorites = async (params: Record<string, unknown> = {}): Promis
     }
 };
 
+/** @alias getFavorites */
+export const getUserFavorites = getFavorites;
+
 /**
  * 添加咖啡店到收藏
  * @param {string} cafeId - 咖啡店ID
@@ -220,6 +223,7 @@ export const toggleFavorite = async (cafeId: string, isFavorited: boolean): Prom
 export default {
     // 收藏管理
     getFavorites,
+    getUserFavorites,
     addToFavorites,
     removeFromFavorites,
     checkFavorite,
