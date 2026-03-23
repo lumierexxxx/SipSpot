@@ -60,7 +60,7 @@ export const CATEGORY_FILTERS: Record<string, CategoryFilter> = {
     'Outdoor': (c) => c.amenities?.includes('outdoor_seating' as AmenityKey) ?? false,
     'Quiet Space': (c) => c.amenities?.includes('quiet' as AmenityKey) ?? false,
     'Dog Friendly': (c) => c.amenities?.includes('pet_friendly' as AmenityKey) ?? false,
-    'Specialty Coffee': (c) => Boolean(c.specialties?.length),
+    'Specialty Coffee': (c) => Boolean(c.specialty),
     'New Openings': (c) => new Date().getTime() - new Date(c.createdAt).getTime() < 60 * 24 * 60 * 60 * 1000,
 };
 
@@ -103,7 +103,7 @@ export function getCafeBadge(cafe: ICafe): CafeBadge {
 
 export function getCafeTags(cafe: ICafe): string[] {
     // Tags are now amenity keys — callers translate with t('amenities.<key>')
-    const specialtyTags = cafe.specialties?.slice(0, 1) ?? []
+    const specialtyTags = cafe.specialty ? [cafe.specialty] : []
     const amenityTags = cafe.amenities?.slice(0, 1) ?? []
     return [...specialtyTags, ...amenityTags].slice(0, 2)
 }

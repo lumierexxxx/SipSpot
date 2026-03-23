@@ -10,7 +10,6 @@ import ViewToggle from '@components/cafe-list/ViewToggle';
 
 interface Props {
     resultCount: number;
-    totalCount: number;
     filters: FilterState;
     view: 'grid' | 'list';
     onSortChange: (value: string) => void;
@@ -20,7 +19,7 @@ interface Props {
 }
 
 export default function CafeListToolbar({
-    resultCount, totalCount, filters, view,
+    resultCount, filters, view,
     onSortChange, onViewChange, onFilterChange, onAmenityToggle,
 }: Props) {
     const { t } = useTranslation('cafeList');

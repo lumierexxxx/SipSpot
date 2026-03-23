@@ -6,12 +6,11 @@ import { useTranslation } from 'react-i18next';
 
 interface Props {
     myOnly: boolean;
-    totalCount: number;
     isLoggedIn: boolean;
     onAddCafe: () => void;
 }
 
-export default function CafeListHeader({ myOnly, totalCount, isLoggedIn, onAddCafe }: Props) {
+export default function CafeListHeader({ myOnly, isLoggedIn, onAddCafe }: Props) {
     const { t } = useTranslation('cafeList');
     return (
         <div className="bg-white border-b border-stone-200">

@@ -123,11 +123,12 @@ export default function CafeCard({
 }: CafeCardProps) {
     const { t } = useTranslation('cafeList');
     const { t: tHome } = useTranslation('home');
-    const { isLoggedIn } = useAuth();
-    const [isFavorited, setIsFavorited] = useState(cafe.isFavorited ?? false);
+    const tdHome = tHome as (key: string) => string;
+    const { isLoggedIn, user } = useAuth();
+    const [isFavorited, setIsFavorited] = useState(user?.favorites?.includes(cafe._id) ?? false);
     const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-    const cafeId = cafe._id ?? cafe.id ?? '';
+    const cafeId = cafe._id ?? '';
     const image = resolveImage(cafe);
     const priceDisplay = cafe.price ? '$'.repeat(cafe.price) : '$$';
     const location = [cafe.address, cafe.city].filter(Boolean).join(', ') || cafe.city || '';
@@ -171,7 +172,7 @@ export default function CafeCard({
                     />
                     {badge && (
                         <div className={`absolute top-3 left-3 ${badge.color} text-white rounded-full px-2.5 py-0.5`} style={{ fontSize: '0.68rem', fontWeight: 600 }}>
-                            {tHome('badge.' + badge.key)}
+                            {tdHome('badge.' + badge.key)}
                         </div>
                     )}
                     {showDistance && distance != null && (
@@ -254,7 +255,7 @@ export default function CafeCard({
 
                 {badge && (
                     <div className={`absolute top-3 left-3 ${badge.color} text-white rounded-full px-3 py-1`} style={{ fontSize: '0.68rem', fontWeight: 600 }}>
-                        {tHome('badge.' + badge.key)}
+                        {tdHome('badge.' + badge.key)}
                     </div>
                 )}
 

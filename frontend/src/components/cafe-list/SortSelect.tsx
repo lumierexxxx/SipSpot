@@ -23,6 +23,7 @@ interface Props {
 
 export default function SortSelect({ value, onChange, options }: Props) {
     const { t } = useTranslation('cafeList');
+    const td = t as (key: string) => string;
 
     return (
         <Select value={value} onValueChange={onChange}>
@@ -32,7 +33,7 @@ export default function SortSelect({ value, onChange, options }: Props) {
             <SelectContent>
                 {options.map(opt => (
                     <SelectItem key={opt.value} value={opt.value} style={{ fontSize: '0.83rem' }}>
-                        {t(opt.labelKey)}
+                        {td(opt.labelKey)}
                     </SelectItem>
                 ))}
             </SelectContent>

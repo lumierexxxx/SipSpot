@@ -43,7 +43,7 @@ export default function CafeListPage({ myOnly = false }: CafeListPageProps) {
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
+    const [, setTotalCount] = useState(0);
 
     const [filters, setFilters] = useState<FilterState>({
         search: searchParams.get('search') ?? '',
@@ -154,7 +154,6 @@ export default function CafeListPage({ myOnly = false }: CafeListPageProps) {
         <div>
             <CafeListHeader
                 myOnly={myOnly}
-                totalCount={totalCount}
                 isLoggedIn={isLoggedIn}
                 onAddCafe={handleAddCafe}
             />
@@ -182,7 +181,6 @@ export default function CafeListPage({ myOnly = false }: CafeListPageProps) {
                 <div className="flex-1 min-w-0">
                     <CafeListToolbar
                         resultCount={cafes.length}
-                        totalCount={totalCount}
                         filters={filters}
                         view={view}
                         onSortChange={value => handleFilterChange('sort', value)}
@@ -207,11 +205,11 @@ export default function CafeListPage({ myOnly = false }: CafeListPageProps) {
                     {!loading && !error && cafes.length > 0 && (
                         view === 'grid' ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                                {cafes.map(cafe => <CafeCard key={cafe._id ?? cafe.id} cafe={cafe} />)}
+                                {cafes.map(cafe => <CafeCard key={cafe._id} cafe={cafe} />)}
                             </div>
                         ) : (
                             <div className="flex flex-col gap-4">
-                                {cafes.map(cafe => <CafeCard key={cafe._id ?? cafe.id} cafe={cafe} view="list" />)}
+                                {cafes.map(cafe => <CafeCard key={cafe._id} cafe={cafe} view="list" />)}
                             </div>
                         )
                     )}

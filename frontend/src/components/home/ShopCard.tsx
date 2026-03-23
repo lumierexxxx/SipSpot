@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, Clock, Heart, Wifi, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { ICafe, SpecialtyType } from '@/types';
+import type { ICafe } from '@/types';
 import { Card } from '@components/ui/card';
 import { getCafeBadge, getCafeTags, getCafeHours, getCafeImage, getCafeAmenityIcons } from '@utils/homeData';
 
@@ -96,7 +96,7 @@ export default function ShopCard({ cafe, index = 0 }: ShopCardProps) {
                                     className="bg-stone-100 text-stone-600 rounded-full px-2.5 py-0.5"
                                     style={{ fontSize: '0.75rem' }}
                                 >
-                                    {cafe.specialties?.includes(tag as SpecialtyType)
+                                    {tag === cafe.specialty
                                         ? tSd(tag)
                                         : tAd(tag)}
                                 </span>

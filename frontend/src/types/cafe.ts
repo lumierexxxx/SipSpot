@@ -31,7 +31,7 @@ export interface IOpeningHours {
   isClosed: boolean
 }
 
-export interface ILocation {
+export interface IGeometry {
   type: 'Point'
   coordinates: [number, number]  // [longitude, latitude]
 }
@@ -41,12 +41,12 @@ export interface ICafe {
   name: string
   description: string
   images: Array<CafeImage | string>
-  location: ILocation
+  geometry: IGeometry
   address: string
   city: string
   price: 1 | 2 | 3 | 4
   amenities: AmenityKey[]
-  specialties: SpecialtyType[]
+  specialty: string
   openingHours: IOpeningHours[]
   rating: number
   reviewCount: number
@@ -54,7 +54,6 @@ export interface ICafe {
   reviews: string[] | IReview[]
   aiSummary?: string
   isVerified?: boolean
-  isFavorited?: boolean   // computed client-side from auth user's favorites
   createdAt: string
   updatedAt: string
 }
@@ -68,3 +67,7 @@ export interface FilterState {
   vibe: string    // used by CafeListPage for amenity/vibe URL filter param
   sort: string
 }
+
+export type Vibe =
+  | 'Specialty' | 'Cozy Vibes' | 'Work-Friendly' | 'Outdoor'
+  | 'Hidden Gems' | 'New Openings'
