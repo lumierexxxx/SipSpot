@@ -9,7 +9,7 @@
 
 ## Goals
 
-1. Fix two field name mismatches in `types/cafe.ts` that were wrong in 3A (`specialties` → `specialty`, `location` → `geometry`)
+1. Fix field name mismatches in `types/cafe.ts` that were wrong in 3A (`specialties` → `specialty`, `location` → `geometry`)
 2. Fix all downstream tsc errors left over from 3A (CafeCard, CafeListPage, CafeFilterPanel, cafe-list components)
 3. Migrate remaining `.jsx` discovery/detail files to TypeScript: `Map.jsx`, `CafeDetail.jsx`, `NearbyPage.jsx`, `CafeDetailPage.jsx`
 4. Full clean migration for `NearbyPage` and `CafeDetailPage`: replace direct `fetch()` with service layer calls, replace `localStorage.getItem('token')` with `useAuth()` hook
@@ -46,14 +46,15 @@ React 19, TypeScript 5 (strict), i18next, Axios, TailwindCSS v4, AMap (高德地
 
 ### Changes to `frontend/src/types/cafe.ts`
 
-**`specialty` (singular string — matches backend Mongoose schema):**
+**`specialty: string` (singular — backend stores bilingual strings like `'意式浓缩 Espresso'`):**
 ```ts
 // Before (wrong — 3A introduced this):
 specialties: SpecialtyType[]
 
 // After:
-specialty: SpecialtyType
+specialty: string
 ```
+Note: `SpecialtyType` enum (English keys) remains in the file for i18n display logic. `ICafe.specialty` is typed as `string` because the backend Mongoose schema stores Chinese bilingual strings (`'意式浓缩 Espresso'`, `'手冲咖啡 Pour Over'`) that don't match the `SpecialtyType` enum values.
 
 **`geometry` (matches backend GeoJSON field name):**
 ```ts
@@ -67,11 +68,11 @@ Rename the interface accordingly: `ILocation` → `IGeometry` for clarity.
 
 **Remove `isFavorited?: boolean` from `ICafe`:** This is not a real DB field. Components compute it via `useAuth().user?.favorites.includes(cafe._id)`.
 
-**Add `Vibe` type** (used by `CafeFilterPanel`):
+**Add `Vibe` type** (used by `CafeFilterPanel` VIBE_OPTIONS, must match existing string values exactly):
 ```ts
 export type Vibe =
-  | 'work_friendly' | 'outdoor_seating' | 'quiet' | 'pet_friendly'
-  | 'specialty' | 'power_outlet' | 'group_friendly' | 'new'
+  | 'Specialty' | 'Cozy Vibes' | 'Work-Friendly' | 'Outdoor'
+  | 'Hidden Gems' | 'New Openings'
 ```
 
 **Updated `IOpeningHours`** — uses `DayKey` (already correct in 3A):
@@ -87,26 +88,24 @@ export interface IOpeningHours {
 ### Downstream fixes (existing `.tsx` files — no renames)
 
 **`CafeCard.tsx`:**
-- `cafe.id` → `cafe._id` (lines ~130)
-- `cafe.specialty` already correct (singular) — no change needed
-- i18n dynamic key: existing `t as (k: string) => string` escape hatch from 3A is fine — leave as-is
+- `cafe.id` → `cafe._id` (line ~130)
+- Fix `isFavorited` initialization (line 127): replace `cafe.isFavorited ?? false` with `user?.favorites?.includes(cafe._id) ?? false` — `user` is already available from `useAuth()` on line 126. Use `cafe._id` directly (not `cafeId` — that const is defined after line 127 and not yet available).
+
+**Task 1 audit step:** Before committing Task 1, run `grep -r "cafe\.location" frontend/src --include="*.tsx"` and fix any remaining usages not listed here. The rename `location` → `geometry` in `ICafe` will break any `.tsx` file that references `cafe.location`.
 
 **`CafeListPage.tsx`:**
 - `cafe.id` → `cafe._id` (lines ~210, 214)
 
 **`CafeFilterPanel.tsx`:**
-- Fix `import { Vibe } from '../types/cafe'` — `Vibe` now exported ✓
-- Replace `AMENITY_OPTIONS` Chinese string values with `AmenityKey` English short keys:
-  ```ts
-  // Before: { label: '...', value: 'WiFi' }
-  // After:  { label: t('amenities.wifi'), value: 'wifi' as AmenityKey }
-  ```
+- `Vibe` is now exported from `types/cafe.ts` ✓ — no change to `AMENITY_OPTIONS` or `VIBE_OPTIONS` values (they use Chinese strings and must stay that way to match backend data)
+- The `import type { FilterState, Vibe }` import will resolve once `Vibe` is exported
 
 **`cafe-list/SortSelect.tsx`:**
-- Fix i18n dynamic key error: `const td = t as (k: string) => string`
+- Add i18n dynamic key escape hatch if tsc reports error: `const td = t as (key: string) => string`
 
 **`cafe-list/CafeListHeader.tsx` + `CafeListToolbar.tsx`:**
 - Remove unused `totalCount` prop from interface and destructuring
+- Also remove the `totalCount={totalCount}` prop pass in `CafeListPage.tsx` (line ~157)
 
 ---
 
@@ -114,7 +113,7 @@ export interface IOpeningHours {
 
 ### `frontend/src/types/amap.d.ts` (new file)
 
-Minimal ambient declarations for the ~5 AMap classes `Map.tsx` actually uses. No attempt to type the full AMap API.
+Minimal ambient declarations for the AMap classes `Map.tsx` actually uses. No attempt to type the full AMap API.
 
 ```ts
 declare namespace AMap {
@@ -125,6 +124,8 @@ declare namespace AMap {
     setZoom(zoom: number): void
     add(overlay: Marker | InfoWindow | ControlBar): void
     remove(overlay: Marker | InfoWindow): void
+    addControl(control: Scale | ToolBar | Geolocation | ControlBar): void
+    setFitView(): void
     on(event: string, handler: (...args: unknown[]) => void): void
     off(event: string, handler: (...args: unknown[]) => void): void
   }
@@ -135,6 +136,9 @@ declare namespace AMap {
     resizeEnable?: boolean
     rotateEnable?: boolean
     pitchEnable?: boolean
+    viewMode?: string
+    showLabel?: boolean
+    features?: string[]
   }
   class Marker {
     constructor(options?: MarkerOptions)
@@ -151,6 +155,7 @@ declare namespace AMap {
     offset?: Pixel
     extData?: unknown
     animation?: string
+    cursor?: string
   }
   class InfoWindow {
     constructor(options?: InfoWindowOptions)
@@ -167,6 +172,19 @@ declare namespace AMap {
   class Size { constructor(width: number, height: number) }
   class Pixel { constructor(x: number, y: number) }
   class ControlBar { constructor(options?: { position?: { right?: string; top?: string } }) }
+  class Scale { constructor(options?: Record<string, unknown>) }
+  class ToolBar { constructor(options?: { position?: { top?: string; right?: string; bottom?: string; left?: string } }) }
+  class Geolocation {
+    constructor(options?: GeolocationOptions)
+    getCurrentPosition(callback?: (status: string, result: unknown) => void): void
+  }
+  interface GeolocationOptions {
+    enableHighAccuracy?: boolean
+    timeout?: number
+    buttonPosition?: string
+    buttonOffset?: Pixel
+    zoomToAccuracy?: boolean
+  }
 }
 
 interface Window {
@@ -180,8 +198,7 @@ declare module '@amap/amap-jsapi-loader' {
     plugins?: string[]
     securityJsCode?: string
   }
-  function load(config: LoadConfig): Promise<typeof AMap>
-  export default { load }
+  export default function load(config: LoadConfig): Promise<typeof AMap>
 }
 ```
 
@@ -193,6 +210,7 @@ interface MapProps {
   cafes?: ICafe[]
   center?: [number, number]
   zoom?: number
+  height?: string
   onMarkerClick?: (cafe: ICafe) => void
   showUserLocation?: boolean
   selectedCafe?: ICafe | null
@@ -201,6 +219,7 @@ export default function Map({
   cafes = [],
   center,
   zoom = 13,
+  height = '600px',
   onMarkerClick,
   showUserLocation = false,
   selectedCafe = null,
@@ -214,9 +233,9 @@ const markersRef = useRef<AMap.Marker[]>([])
 const infoWindowRef = useRef<AMap.InfoWindow | null>(null)
 ```
 
-**`geometry` fix:** Map component likely accesses `cafe.location` or `cafe.geometry` for coordinates. Update to `cafe.geometry.coordinates`.
+**`geometry` fix:** Map component uses `cafe.geometry.coordinates` for marker coordinates — this is already correct in the existing `.jsx` file (the field was never `location` in Map.jsx). Keep as-is.
 
-**Note on innerHTML:** The existing string template for InfoWindow content (lines ~105–148) is pre-existing. Add a comment noting the XSS risk but do NOT refactor the innerHTML logic — that is outside 3B scope.
+**Note on innerHTML:** The existing string template for InfoWindow content is pre-existing. Add a comment noting the XSS risk but do NOT refactor the innerHTML logic — that is outside 3B scope.
 
 ---
 
@@ -231,25 +250,32 @@ interface CafeDetailProps {
   cafe: ICafe
   isFavorited?: boolean
   onFavoriteToggle?: (cafeId: string, isFavorited: boolean) => void
+  onEdit?: (cafe: ICafe) => void
+  onDelete?: (cafeId: string) => void
 }
-export default function CafeDetail({ cafe, isFavorited = false, onFavoriteToggle }: CafeDetailProps) {
+export default function CafeDetail({ cafe, isFavorited = false, onFavoriteToggle, onEdit, onDelete }: CafeDetailProps) {
 ```
+
+### Internal state
+
+The existing component has `const [isFavorited, setIsFavorited] = useState(cafe.isFavorited || false)` (line 24). Replace with the `isFavorited` prop — the parent (`CafeDetailPage`) owns favorite state. Remove internal isFavorited state and use the prop directly throughout. If a local loading state is needed for the toggle button, keep only `const [favoriteLoading, setFavoriteLoading] = useState(false)`.
 
 ### Helper function types
 
 ```ts
-function getAmenityIcon(amenity: AmenityKey): React.ReactElement { ... }
+function getAmenityIcon(amenity: string): React.ReactElement { ... }
 function translateDay(day: DayKey): string {
   return t(`days.${day}`)  // uses i18n days namespace
 }
 ```
 
+Note: `getAmenityIcon` takes `string` (not `AmenityKey`) since `cafe.amenities[]` contains Chinese backend strings that don't match `AmenityKey` enum values.
+
 ### Field corrections
 
 - `cafe.location` → `cafe.geometry` for map coordinate access
-- `cafe.specialty` (singular) already correct
-- Amenity comparisons updated to use `AmenityKey` English short keys (e.g. `amenity === 'wifi'` not `'WiFi'`)
-- Day comparisons use `DayKey` English names (e.g. `'monday'` not `'周一'`)
+- `cafe.specialty` (singular string) — no icon lookup, display as-is
+- `getTodayHours`: change `const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']` to lowercase `['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']` to match `DayKey` values used in `IOpeningHours.day`
 
 ### State
 
@@ -268,9 +294,23 @@ Images are `Array<CafeImage | string>` — access pattern: `typeof img === 'stri
 ### State types
 
 ```ts
+interface LocationError {
+  title: string
+  message: string
+  type: string
+}
+
+interface ApiError {
+  type: string
+  message: string
+  details?: string
+}
+
 const [cafes, setCafes] = useState<ICafe[]>([])
 const [loading, setLoading] = useState<boolean>(false)
 const [error, setError] = useState<string | null>(null)
+const [locationError, setLocationError] = useState<LocationError | null>(null)
+const [apiError, setApiError] = useState<ApiError | null>(null)
 const [userPosition, setUserPosition] = useState<SipSpotPosition | null>(null)
 ```
 
@@ -278,25 +318,32 @@ const [userPosition, setUserPosition] = useState<SipSpotPosition | null>(null)
 
 ### Service layer replacement
 
-Replace all `fetch()` calls:
+Replace `fetchNearbyCafes` direct fetch with service layer:
 
-| Old (direct fetch) | New (service layer) |
-|---|---|
-| `fetch('/api/cafes/nearby?lat=...')` with manual auth header | `cafesAPI.getNearbyCafes({ lat, lng, radius })` |
+```ts
+// Old:
+fetch(`${apiUrl}/cafes/nearby?lng=${location.lng}&lat=${location.lat}&distance=${distance * 1000}`, {
+  headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+})
+
+// New:
+import * as cafesAPI from '@services/cafesAPI'
+await cafesAPI.getNearbyCafes({ lat: location.lat, lng: location.lng, distance: distance * 1000 })
+```
+
+Note: `getNearbyCafes` accepts `distance` in **meters** — pass `distance * 1000` (the `distance` state is in km).
 
 Remove all `localStorage.getItem('token')` calls — the Axios instance in `api.ts` already injects auth tokens via interceptor.
 
-Use `useGeolocation()` hook (already typed in 3A) instead of raw `navigator.geolocation` calls where applicable.
-
 ### Debug logging removal
 
-Remove the extensive `console.log` statements in lines ~6–7, ~30–62. These are development artifacts, not meaningful error handling.
+Remove the `console.log` statements in lines ~6–7, ~30–62. These are development artifacts, not meaningful error handling.
 
 ### Event handlers
 
 ```ts
 const handleSearch = async (): Promise<void> => { ... }
-const handleRadiusChange = (e: React.ChangeEvent<HTMLInputElement>): void => { ... }
+const handleDistanceChange = (e: React.ChangeEvent<HTMLInputElement>): void => { ... }
 ```
 
 ---
@@ -316,6 +363,15 @@ const [error, setError] = useState<string | null>(null)
 const [isFavorited, setIsFavorited] = useState<boolean>(false)
 ```
 
+`isFavorited` state is initialized via `useEffect` after `cafe` and `user` load:
+```ts
+useEffect(() => {
+  if (user && cafe) {
+    setIsFavorited(user.favorites?.includes(cafe._id) ?? false)
+  }
+}, [user, cafe])
+```
+
 ### Service layer replacement
 
 All direct `fetch()` calls replaced with typed service calls:
@@ -324,10 +380,12 @@ All direct `fetch()` calls replaced with typed service calls:
 |---|---|
 | `fetch('/api/cafes/${id}')` with manual auth header | `cafesAPI.getCafeById(id)` |
 | `fetch('/api/cafes/${id}/reviews')` | `cafesAPI.getCafeReviews(id)` |
-| `fetch('/api/cafes/${id}/reviews', { method: 'POST' })` | `cafesAPI.createReview(id, reviewData)` |
+| `fetch('/api/cafes/${id}/reviews', { method: 'POST' })` | `cafesAPI.createReview(id, reviewForm as Record<string, unknown>)` |
 | `fetch('/api/users/me/favorites/${id}')` (toggle) | `usersAPI.toggleFavorite(id, isFavorited)` |
 | `fetch('/api/reviews/${reviewId}/helpful', ...)` | `cafesAPI.voteReviewHelpful(reviewId, voteType)` |
 | `fetch('/api/reviews/${reviewId}/report', ...)` | `cafesAPI.reportReview(reviewId, reason)` |
+
+Use `usersAPI.toggleFavorite` (not `cafesAPI.toggleFavorite` — a deprecated duplicate exists in cafesAPI). `usersAPI.toggleFavorite(cafeId, isFavorited)` returns `Promise<boolean>` (the new favorite state).
 
 ### Auth pattern
 
@@ -335,8 +393,6 @@ Remove `localStorage.getItem('token')` — the Axios interceptor handles token i
 
 ```ts
 const { user, isLoggedIn } = useAuth()
-// isFavorited computed from:
-const isFav = user?.favorites.includes(cafe?._id ?? '') ?? false
 ```
 
 ### Review form data type
@@ -361,6 +417,8 @@ const [reviewForm, setReviewForm] = useState<ReviewFormData>({
 })
 ```
 
+Pass to `createReview` as `reviewForm as Record<string, unknown>` (the service function accepts `Record<string, unknown>`).
+
 ### Event handlers
 
 ```ts
@@ -377,6 +435,7 @@ const handleReportReview = async (reviewId: string): Promise<void> => { ... }
 - ReviewForm component (3C scope)
 - ReviewList component (3C scope)
 - Fixing `innerHTML` XSS in Map.tsx (separate security task)
+- Fixing amenity enum mismatch between backend Chinese strings and `AmenityKey` TypeScript enum (separate refactor)
 - Adding new features or changing rendering logic
 - Backend changes
 
