@@ -379,7 +379,7 @@ All direct `fetch()` calls replaced with typed service calls:
 | Old (direct fetch) | New (service layer) |
 |---|---|
 | `fetch('/api/cafes/${id}')` with manual auth header | `cafesAPI.getCafeById(id)` |
-| `fetch('/api/cafes/${id}/reviews')` | `cafesAPI.getCafeReviews(id)` |
+| `fetch('/api/cafes/${id}/reviews')` | `cafesAPI.getReviews(id)` |
 | `fetch('/api/cafes/${id}/reviews', { method: 'POST' })` | `cafesAPI.createReview(id, reviewForm as Record<string, unknown>)` |
 | `fetch('/api/users/me/favorites/${id}')` (toggle) | `usersAPI.toggleFavorite(id, isFavorited)` |
 | `fetch('/api/reviews/${reviewId}/helpful', ...)` | `cafesAPI.voteReviewHelpful(reviewId, voteType)` |
