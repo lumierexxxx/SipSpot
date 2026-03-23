@@ -4,13 +4,13 @@
 // ============================================
 
 import { get, post, put, uploadFile } from './api';
-import { 
-    setAuthToken, 
-    setRefreshToken, 
-    setUser, 
+import type { IUser, ApiResponse } from '@/types'
+import {
+    setAuthToken,
+    setRefreshToken,
+    setUser,
     clearAuth,
     getRefreshToken,
-    refreshAccessToken 
 } from './api';
 
 // ============================================
@@ -24,7 +24,7 @@ import {
  * @param {string} userData.email - 邮箱
  * @param {string} userData.password - 密码
  */
-export const register = async (userData) => {
+export const register = async (userData: Record<string, string>): Promise<ApiResponse<IUser>> => {
     try {
         const response = await post('/auth/register', userData);
         
@@ -47,7 +47,7 @@ export const register = async (userData) => {
  * @param {string} credentials.identifier - 邮箱或用户名
  * @param {string} credentials.password - 密码
  */
-export const login = async (credentials) => {
+export const login = async (credentials: Record<string, string>): Promise<ApiResponse<IUser>> => {
     try {
         const response = await post('/auth/login', credentials);
         
@@ -67,7 +67,7 @@ export const login = async (credentials) => {
 /**
  * 用户登出
  */
-export const logout = async () => {
+export const logout = async (): Promise<void> => {
     try {
         await post('/auth/logout');
     } catch (error) {
@@ -104,7 +104,7 @@ export const getCurrentUser = async () => {
  * @param {string} updateData.avatar - 头像URL
  * @param {string} updateData.bio - 个人简介
  */
-export const updateProfile = async (updateData) => {
+export const updateProfile = async (updateData: Record<string, unknown>): Promise<ApiResponse<IUser>> => {
     try {
         const response = await put('/auth/me', updateData);
         
@@ -125,7 +125,7 @@ export const updateProfile = async (updateData) => {
  * @param {string} passwordData.currentPassword - 当前密码
  * @param {string} passwordData.newPassword - 新密码
  */
-export const updatePassword = async (passwordData) => {
+export const updatePassword = async (passwordData: Record<string, string>): Promise<ApiResponse<unknown>> => {
     try {
         const response = await put('/auth/password', passwordData);
         
@@ -144,7 +144,7 @@ export const updatePassword = async (passwordData) => {
  * 请求密码重置
  * @param {string} email - 邮箱地址
  */
-export const forgotPassword = async (email) => {
+export const forgotPassword = async (email: string): Promise<ApiResponse<unknown>> => {
     try {
         const response = await post('/auth/forgot-password', { email });
         return response;
@@ -158,7 +158,7 @@ export const forgotPassword = async (email) => {
  * @param {string} token - 重置token
  * @param {string} password - 新密码
  */
-export const resetPassword = async (token, password) => {
+export const resetPassword = async (token: string, password: string): Promise<ApiResponse<unknown>> => {
     try {
         const response = await put(`/auth/reset-password/${token}`, { password });
         
@@ -176,7 +176,7 @@ export const resetPassword = async (token, password) => {
 /**
  * 刷新访问令牌
  */
-export const refreshToken = async () => {
+export const refreshToken = async (): Promise<ApiResponse<unknown>> => {
     try {
         const refreshTokenValue = getRefreshToken();
         
@@ -205,16 +205,16 @@ export const refreshToken = async () => {
  * 上传用户头像
  * @param {File} avatarFile - 头像文件
  */
-export const uploadAvatar = async (avatarFile) => {
+export const uploadAvatar = async (avatarFile: File): Promise<ApiResponse<IUser>> => {
     try {
         // 注意：这个功能需要后端支持，如果没有对应路由，需要通过updateProfile实现
-        const response = await uploadFile('/auth/avatar', avatarFile, 'avatar');
-        
+        const response = await uploadFile('/auth/avatar', avatarFile, 'avatar') as ApiResponse<IUser>;
+
         // 更新本地用户信息
         if (response.success && response.data) {
             setUser(response.data);
         }
-        
+
         return response;
     } catch (error) {
         throw error;
@@ -311,7 +311,7 @@ export const checkAuthStatus = async () => {
         return response.success;
     } catch (error) {
         // 如果是401错误，尝试刷新token
-        if (error.status === 401) {
+        if ((error as { status?: number }).status === 401) {
             try {
                 await refreshToken();
                 // 刷新成功后再次尝试获取用户信息
@@ -332,11 +332,16 @@ export const checkAuthStatus = async () => {
 // 表单验证辅助函数
 // ============================================
 
+interface ValidationResult {
+    isValid: boolean
+    errors: Record<string, string>
+}
+
 /**
  * 验证注册表单数据
  */
-export const validateRegistrationData = (data) => {
-    const errors = {};
+export const validateRegistrationData = (data: Record<string, string>): ValidationResult => {
+    const errors: Record<string, string> = {};
     
     // 用户名验证
     if (!data.username) {
@@ -372,8 +377,8 @@ export const validateRegistrationData = (data) => {
 /**
  * 验证登录数据
  */
-export const validateLoginData = (data) => {
-    const errors = {};
+export const validateLoginData = (data: Record<string, string>): ValidationResult => {
+    const errors: Record<string, string> = {};
     
     if (!data.identifier) {
         errors.identifier = '请输入邮箱或用户名';
@@ -394,7 +399,7 @@ export const validateLoginData = (data) => {
  * @param {string} password
  * @returns {Object} 强度信息
  */
-export const checkPasswordStrength = (password) => {
+export const checkPasswordStrength = (password: string) => {
     let strength = 0;
     let feedback = [];
     

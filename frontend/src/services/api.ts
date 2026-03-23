@@ -1,9 +1,11 @@
+/// <reference types="vite/client" />
 // ============================================
 // SipSpot Frontend - API 服务配置
 // Axios 配置、拦截器、错误处理
 // ============================================
 
 import axios from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
 
 // ============================================
 // 基础配置
@@ -24,7 +26,7 @@ const api = axios.create({
 // 请求拦截器 - 自动添加 token
 // ============================================
 api.interceptors.request.use(
-    (config) => {
+    (config: InternalAxiosRequestConfig) => {
         // 从 localStorage 获取 token
         const token = localStorage.getItem('token');
         
@@ -43,7 +45,7 @@ api.interceptors.request.use(
         
         return config;
     },
-    (error) => {
+    (error: AxiosError) => {
         console.error('❌ Request Error:', error);
         return Promise.reject(error);
     }
@@ -53,7 +55,7 @@ api.interceptors.request.use(
 // 响应拦截器 - 统一处理响应和错误
 // ============================================
 api.interceptors.response.use(
-    (response) => {
+    (response: AxiosResponse) => {
         // 开发环境下打印响应信息
         if (import.meta.env.DEV) {
             console.log('📥 API Response:', {
@@ -65,7 +67,7 @@ api.interceptors.response.use(
         
         return response.data; // 直接返回 data 部分
     },
-    (error) => {
+    (error: AxiosError<{ message?: string }>) => {
         // 统一错误处理
         const errorMessage = handleApiError(error);
         
@@ -100,7 +102,7 @@ api.interceptors.response.use(
 // ============================================
 // 错误处理函数
 // ============================================
-function handleApiError(error) {
+function handleApiError(error: AxiosError<{ message?: string }>): string {
     if (error.response) {
         // 服务器返回了错误响应
         const { status, data } = error.response;
@@ -140,7 +142,7 @@ function handleApiError(error) {
 /**
  * 设置认证 token
  */
-export const setAuthToken = (token) => {
+export const setAuthToken = (token: string | null) => {
     if (token) {
         localStorage.setItem('token', token);
     } else {
@@ -158,7 +160,7 @@ export const getAuthToken = () => {
 /**
  * 设置刷新 token
  */
-export const setRefreshToken = (refreshToken) => {
+export const setRefreshToken = (refreshToken: string | null) => {
     if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
     } else {
@@ -217,7 +219,7 @@ export const clearAuth = () => {
 /**
  * 设置用户信息
  */
-export const setUser = (user) => {
+export const setUser = (user: unknown) => {
     if (user) {
         localStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -252,42 +254,47 @@ export const isAuthenticated = () => {
 /**
  * GET 请求
  */
-export const get = (url, config = {}) => {
+export const get = (url: string, config: Record<string, unknown> = {}): Promise<any> => {
     return api.get(url, config);
 };
 
 /**
  * POST 请求
  */
-export const post = (url, data = {}, config = {}) => {
+export const post = (url: string, data: unknown = {}, config: Record<string, unknown> = {}): Promise<any> => {
     return api.post(url, data, config);
 };
 
 /**
  * PUT 请求
  */
-export const put = (url, data = {}, config = {}) => {
+export const put = (url: string, data: unknown = {}, config: Record<string, unknown> = {}): Promise<any> => {
     return api.put(url, data, config);
 };
 
 /**
  * PATCH 请求
  */
-export const patch = (url, data = {}, config = {}) => {
+export const patch = (url: string, data: unknown = {}, config: Record<string, unknown> = {}): Promise<any> => {
     return api.patch(url, data, config);
 };
 
 /**
  * DELETE 请求
  */
-export const del = (url, config = {}) => {
+export const del = (url: string, config: Record<string, unknown> = {}): Promise<any> => {
     return api.delete(url, config);
 };
 
 /**
  * 上传文件（支持多文件）
  */
-export const uploadFile = (url, files, fieldName = 'images', additionalData = {}) => {
+export const uploadFile = (
+    url: string,
+    files: File | File[],
+    fieldName = 'images',
+    additionalData: Record<string, unknown> = {}
+): Promise<unknown> => {
     const formData = new FormData();
     
     // 添加文件
@@ -308,7 +315,7 @@ export const uploadFile = (url, files, fieldName = 'images', additionalData = {}
             } else if (Array.isArray(value)) {
                 formData.append(key, JSON.stringify(value));
             } else {
-                formData.append(key, value);
+                formData.append(key, value as string);
             }
         }
     });
@@ -323,14 +330,14 @@ export const uploadFile = (url, files, fieldName = 'images', additionalData = {}
 /**
  * 下载文件
  */
-export const downloadFile = async (url, filename) => {
+export const downloadFile = async (url: string, filename: string) => {
     try {
         const response = await api.get(url, {
             responseType: 'blob'
         });
         
         // 创建下载链接
-        const blob = new Blob([response]);
+        const blob = new Blob([response as unknown as BlobPart]);
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -350,4 +357,5 @@ export const downloadFile = async (url, filename) => {
 // ============================================
 // 导出
 // ============================================
+export type ApiInstance = AxiosInstance
 export default api;

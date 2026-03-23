@@ -4,6 +4,7 @@
 // ============================================
 
 import { get, post, del } from './api';
+import type { IUser, ICafe, ApiResponse } from '@/types'
 
 // ============================================
 // 收藏管理 API
@@ -16,7 +17,7 @@ import { get, post, del } from './api';
  * @param {number} params.limit - 每页数量
  * @param {string} params.sort - 排序方式
  */
-export const getFavorites = async (params = {}) => {
+export const getFavorites = async (params: Record<string, unknown> = {}): Promise<ApiResponse<ICafe[]>> => {
     try {
         const response = await get('/users/me/favorites', { params });
         return response;
@@ -29,7 +30,7 @@ export const getFavorites = async (params = {}) => {
  * 添加咖啡店到收藏
  * @param {string} cafeId - 咖啡店ID
  */
-export const addToFavorites = async (cafeId) => {
+export const addToFavorites = async (cafeId: string): Promise<ApiResponse<{ favorites: string[] }>> => {
     try {
         const response = await post(`/users/me/favorites/${cafeId}`);
         return response;
@@ -42,7 +43,7 @@ export const addToFavorites = async (cafeId) => {
  * 从收藏中移除咖啡店
  * @param {string} cafeId - 咖啡店ID
  */
-export const removeFromFavorites = async (cafeId) => {
+export const removeFromFavorites = async (cafeId: string): Promise<ApiResponse<{ favorites: string[] }>> => {
     try {
         const response = await del(`/users/me/favorites/${cafeId}`);
         return response;
@@ -55,7 +56,7 @@ export const removeFromFavorites = async (cafeId) => {
  * 检查是否收藏了某个咖啡店
  * @param {string} cafeId - 咖啡店ID
  */
-export const checkFavorite = async (cafeId) => {
+export const checkFavorite = async (cafeId: string) => {
     try {
         const response = await get(`/users/me/favorites/${cafeId}/check`);
         return response;
@@ -87,7 +88,7 @@ export const getVisitedCafes = async (params = {}) => {
  * 记录访问咖啡店
  * @param {string} cafeId - 咖啡店ID
  */
-export const markAsVisited = async (cafeId) => {
+export const markAsVisited = async (cafeId: string) => {
     try {
         const response = await post(`/users/me/visited/${cafeId}`);
         return response;
@@ -152,7 +153,7 @@ export const getMyStats = async () => {
  * 获取用户公开资料
  * @param {string} userId - 用户ID
  */
-export const getUserProfile = async (userId) => {
+export const getUserProfile = async (userId: string): Promise<ApiResponse<IUser>> => {
     try {
         const response = await get(`/users/${userId}`);
         return response;
@@ -166,7 +167,7 @@ export const getUserProfile = async (userId) => {
  * @param {string} userId - 用户ID
  * @param {Object} params - 查询参数
  */
-export const getUserCafes = async (userId, params = {}) => {
+export const getUserCafes = async (userId: string, params: Record<string, unknown> = {}) => {
     try {
         const response = await get(`/users/${userId}/cafes`, { params });
         return response;
@@ -180,7 +181,7 @@ export const getUserCafes = async (userId, params = {}) => {
  * @param {string} userId - 用户ID
  * @param {Object} params - 查询参数
  */
-export const getUserReviews = async (userId, params = {}) => {
+export const getUserReviews = async (userId: string, params: Record<string, unknown> = {}) => {
     try {
         const response = await get(`/users/${userId}/reviews`, { params });
         return response;
