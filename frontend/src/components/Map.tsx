@@ -53,7 +53,6 @@ export default function Map({
     const securityCode = import.meta.env.VITE_AMAP_SECURITY_CODE as string | undefined
 
     if (!amapKey) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('高德地图 API Key 未配置')
       setLoading(false)
       return
@@ -181,15 +180,18 @@ export default function Map({
             </div>
           `
 
-          // 创建信息窗口
-          const infoWindow = new _AMapSDK.InfoWindow({
-            content: infoWindowContent,
-            offset: new _AMapSDK.Pixel(0, -30),
-          })
-
           // 点击标记显示信息窗口
           marker.on('click', () => {
-            infoWindow.open(map, marker.getPosition() as unknown as [number, number])
+            const pos = marker.getPosition()
+            if (!pos) return
+
+            // 创建信息窗口
+            const infoWindow = new _AMapSDK.InfoWindow({
+              content: infoWindowContent,
+              offset: new _AMapSDK.Pixel(0, -30),
+            })
+
+            infoWindow.open(map, [pos.lng, pos.lat])
 
             // 触发回调
             onMarkerClick?.(cafe)
