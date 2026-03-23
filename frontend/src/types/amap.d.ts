@@ -80,5 +80,9 @@ declare module '@amap/amap-jsapi-loader' {
     plugins?: string[]
     securityJsCode?: string
   }
-  export default function load(config: LoadConfig): Promise<typeof AMap>
+  interface AMapLoader {
+    load(config: LoadConfig): Promise<typeof AMap>
+  }
+  const loader: AMapLoader
+  export default loader
 }

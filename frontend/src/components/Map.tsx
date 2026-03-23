@@ -41,146 +41,186 @@ export default function Map({
   const [error, setError] = useState<string | null>(null)
 
   // ============================================
-  // 初始化地图
+  // 初始化地图 + 添加标记（合并为单一 effect）
   // ============================================
   useEffect(() => {
+    // 清理之前的地图实例
+    if (mapInstance.current) {
+      mapInstance.current.destroy()
+    }
+
     const amapKey = import.meta.env.VITE_AMAP_KEY as string | undefined
     const securityCode = import.meta.env.VITE_AMAP_SECURITY_CODE as string | undefined
 
     if (!amapKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('高德地图 API Key 未配置')
       setLoading(false)
       return
     }
 
-    if (!mapRef.current) return
-
-    AMapLoader({
+    AMapLoader.load({
       key: amapKey,
       version: '2.0',
-      plugins: ['AMap.Scale', 'AMap.ToolBar', 'AMap.Geolocation', 'AMap.ControlBar'],
+      plugins: [
+        'AMap.Marker',
+        'AMap.InfoWindow',
+        'AMap.Geolocation',
+        'AMap.Scale',
+        'AMap.ToolBar',
+      ],
       ...(securityCode ? { securityJsCode: securityCode } : {}),
     })
       .then((_AMapSDK: typeof AMap) => {
-        if (!mapRef.current) return
-
-        const mapCenter: [number, number] = center ?? [116.397428, 39.90923]
-
-        mapInstance.current = new _AMapSDK.Map(mapRef.current, {
+        // 创建地图实例
+        const map = new _AMapSDK.Map(mapRef.current!, {
           zoom,
-          center: mapCenter,
-          resizeEnable: true,
-          mapStyle: 'amap://styles/normal',
+          center: center ?? [121.473701, 31.230416], // 默认上海人民广场
+          viewMode: '2D',
+          mapStyle: 'amap://styles/light', // 浅色主题
+          showLabel: true,
+          features: ['bg', 'road', 'building', 'point'],
         })
 
-        const map = mapInstance.current
+        mapInstance.current = map
 
+        // 添加缩放和平移控件
         map.addControl(new _AMapSDK.Scale({}))
-        map.addControl(new _AMapSDK.ToolBar({}))
+        map.addControl(
+          new _AMapSDK.ToolBar({
+            position: {
+              top: '110px',
+              right: '40px',
+            },
+          }),
+        )
 
+        // 显示用户位置
         if (showUserLocation) {
-          map.addControl(
-            new _AMapSDK.Geolocation({
-              enableHighAccuracy: true,
-              timeout: 10000,
-              buttonPosition: 'RB',
-              zoomToAccuracy: true,
-            }),
-          )
+          const geolocation = new _AMapSDK.Geolocation({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            buttonPosition: 'RB',
+            buttonOffset: new _AMapSDK.Pixel(10, 20),
+            zoomToAccuracy: true,
+          })
+
+          map.addControl(geolocation)
+          geolocation.getCurrentPosition()
+        }
+
+        // 清除旧标记
+        markersRef.current.forEach((marker) => marker.setMap(null))
+        markersRef.current = []
+
+        // 添加咖啡馆标记
+        cafes.forEach((cafe) => {
+          const marker = new _AMapSDK.Marker({
+            position: [
+              cafe.geometry.coordinates[0], // 经度
+              cafe.geometry.coordinates[1], // 纬度
+            ],
+            title: cafe.name,
+            extData: cafe, // 存储咖啡馆数据
+            cursor: 'pointer',
+          })
+
+          // 获取第一张图片 URL（兼容 string | CafeImage 两种格式）
+          const firstImage = cafe.images?.[0]
+          const imageUrl =
+            firstImage == null
+              ? null
+              : typeof firstImage === 'string'
+                ? firstImage
+                : firstImage.url ?? null
+
+          // WARNING: XSS risk — InfoWindow uses innerHTML with cafe data.
+          // Do not add user-generated content here without sanitization. Fix in separate security task.
+          const infoWindowContent = `
+            <div style="padding: 12px; min-width: 240px;">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">
+                    ${cafe.name}
+                </div>
+                ${imageUrl ? `
+                    <img
+                        src="${imageUrl}"
+                        alt="${cafe.name}"
+                        style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;"
+                    />
+                ` : ''}
+                <div style="color: #666; font-size: 14px; margin-bottom: 4px;">
+                    ⭐ ${cafe.rating ? cafe.rating.toFixed(1) : 'N/A'}
+                    ${cafe.reviewCount ? `(${cafe.reviewCount}条评论)` : ''}
+                </div>
+                <div style="color: #666; font-size: 14px; margin-bottom: 4px;">
+                    💰 ${'$'.repeat(cafe.price ?? 2)}
+                </div>
+                <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                    📍 ${cafe.address}
+                </div>
+                ${cafe.description ? `
+                    <div style="color: #888; font-size: 13px; margin-bottom: 8px; max-height: 60px; overflow: hidden;">
+                        ${cafe.description.substring(0, 80)}${cafe.description.length > 80 ? '...' : ''}
+                    </div>
+                ` : ''}
+                <a
+                    href="/cafes/${cafe._id}"
+                    style="
+                        display: inline-block;
+                        padding: 6px 12px;
+                        background: #16a34a;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        margin-top: 8px;
+                    "
+                >
+                    查看详情 →
+                </a>
+            </div>
+          `
+
+          // 创建信息窗口
+          const infoWindow = new _AMapSDK.InfoWindow({
+            content: infoWindowContent,
+            offset: new _AMapSDK.Pixel(0, -30),
+          })
+
+          // 点击标记显示信息窗口
+          marker.on('click', () => {
+            infoWindow.open(map, marker.getPosition() as unknown as [number, number])
+
+            // 触发回调
+            onMarkerClick?.(cafe)
+          })
+
+          // 添加到地图
+          map.add(marker)
+          markersRef.current.push(marker)
+        })
+
+        // 如果有多个标记，自动调整视野
+        if (cafes.length > 1) {
+          map.setFitView()
         }
 
         setLoading(false)
       })
-      .catch(() => {
-        setError('高德地图加载失败')
+      .catch((err: unknown) => {
+        console.error('高德地图加载失败:', err)
+        setError('地图加载失败，请刷新页面重试')
         setLoading(false)
       })
 
+    // 清理函数
     return () => {
       if (mapInstance.current) {
         mapInstance.current.destroy()
         mapInstance.current = null
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // ============================================
-  // 添加/更新标记
-  // ============================================
-  useEffect(() => {
-    if (loading || !mapInstance.current) return
-
-    // 清除旧标记
-    markersRef.current.forEach((m) => m.setMap(null))
-    markersRef.current = []
-
-    if (cafes.length === 0) return
-
-    const map = mapInstance.current
-
-    cafes.forEach((cafe) => {
-      const coords = cafe.geometry?.coordinates
-      if (!coords || coords.length !== 2) return
-
-      const [lng, lat] = coords
-      const position: [number, number] = [lng, lat]
-
-      const marker = new window.AMap.Marker({
-        position,
-        title: cafe.name,
-        animation: 'AMAP_ANIMATION_DROP',
-        cursor: 'pointer',
-        extData: cafe,
-      })
-
-      marker.setMap(map)
-
-      marker.on('click', () => {
-        // 关闭所有已打开的信息窗口
-        markersRef.current.forEach((m) => {
-          const existingInfoWindow = (m as AMap.Marker & { _infoWindow?: AMap.InfoWindow })
-            ._infoWindow
-          existingInfoWindow?.close()
-        })
-
-        const pos = marker.getPosition()
-        if (!pos) return
-
-        // WARNING: XSS risk — InfoWindow uses innerHTML with cafe data.
-        // Do not add user-generated content here without sanitization. Fix in separate security task.
-        const infoWindowContent = `
-          <div style="padding:12px;min-width:200px;font-family:system-ui,-apple-system,sans-serif;">
-            <h3 style="font-weight:bold;font-size:16px;color:#111827;margin:0 0 8px 0;">${cafe.name}</h3>
-            <div style="display:flex;align-items:center;margin-bottom:8px;">
-              <span style="color:#F59E0B;font-size:14px;">★</span>
-              <span style="margin-left:4px;font-weight:500;">${cafe.rating?.toFixed(1) ?? '0.0'}</span>
-              <span style="margin-left:4px;color:#6B7280;font-size:13px;">(${cafe.reviewCount ?? 0})</span>
-            </div>
-            <p style="color:#6B7280;font-size:13px;margin:0 0 12px 0;">${cafe.address ?? cafe.city}</p>
-            <a href="/cafes/${cafe._id}" style="display:inline-block;background-color:#D97706;color:white;padding:6px 12px;border-radius:4px;text-decoration:none;font-size:13px;">查看详情</a>
-          </div>
-        `
-
-        const infoWindow = new window.AMap.InfoWindow({
-          content: infoWindowContent,
-          offset: new window.AMap.Pixel(0, -30),
-          closeWhenClickMap: true,
-        })
-
-        infoWindow.open(map, [pos.lng, pos.lat])
-        ;(marker as AMap.Marker & { _infoWindow?: AMap.InfoWindow })._infoWindow = infoWindow
-
-        onMarkerClick?.(cafe)
-      })
-
-      markersRef.current.push(marker)
-    })
-
-    if (markersRef.current.length > 0) {
-      mapInstance.current.setFitView()
-    }
-  }, [loading, cafes, onMarkerClick])
+  }, [cafes, center, zoom, showUserLocation, onMarkerClick])
 
   // ============================================
   // selectedCafe 高亮处理
@@ -202,55 +242,33 @@ export default function Map({
         className="bg-gray-100 rounded-lg flex items-center justify-center"
         style={{ height }}
       >
-        <div className="text-center p-4">
-          <svg
-            className="w-12 h-12 text-gray-400 mx-auto mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="text-center text-gray-600">
+          <p className="text-lg mb-2">❌ {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-md text-sm cursor-pointer"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-            />
-          </svg>
-          <p className="text-gray-600">{error}</p>
-          {error.includes('API Key') && (
-            <p className="text-sm text-gray-500 mt-2">
-              请在 .env 文件中配置 VITE_AMAP_KEY
-            </p>
-          )}
+            刷新页面
+          </button>
         </div>
       </div>
     )
   }
 
   // ============================================
-  // 加载状态
+  // 地图容器（loading 时显示遮罩层）
   // ============================================
-  if (loading) {
-    return (
-      <div
-        className="bg-gray-100 rounded-lg flex items-center justify-center"
-        style={{ height }}
-      >
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-gray-300 border-t-amber-600 rounded-full animate-spin mb-2" />
-          <p className="text-gray-600">加载地图中...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="relative" style={{ height }}>
-      <div ref={mapRef} className="rounded-lg overflow-hidden shadow-md w-full h-full" />
-      {/* 地图控制提示 */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600 shadow-md pointer-events-none">
-        点击标记查看详情 | 滚动缩放地图
-      </div>
+    <div className="relative w-full" style={{ height }}>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-[1000]">
+          <div className="text-center">
+            <div className="text-2xl mb-2">🗺️</div>
+            <div className="text-gray-600">地图加载中...</div>
+          </div>
+        </div>
+      )}
+      <div ref={mapRef} className="w-full h-full" />
     </div>
   )
 }
