@@ -2,7 +2,7 @@
 // SipSpot Frontend - Navbar Component
 // ============================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Coffee, Menu, X, ChevronDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,8 @@ interface NavbarProps {
 export default function Navbar({ transparent: _transparent = false }: NavbarProps) {
     const { user, isLoggedIn, logout } = useAuth();
     const { t } = useTranslation('common');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
@@ -84,7 +86,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
                                 className={`px-4 py-2 rounded-lg transition-colors ${isActive(link.href) ? 'text-amber-700 bg-amber-50' : 'text-stone-600 hover:text-amber-700 hover:bg-stone-50'}`}
                                 style={{ fontSize: '0.9rem' }}
                             >
-                                {t(link.tKey)}
+                                {td(link.tKey)}
                             </Link>
                         ))}
                     </div>
@@ -140,7 +142,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
                                                 className="block px-4 py-2.5 text-stone-700 hover:bg-stone-50 hover:text-amber-700 transition-colors"
                                                 style={{ fontSize: '0.85rem' }}
                                             >
-                                                {t(item.tKey)}
+                                                {td(item.tKey)}
                                             </Link>
                                         ))}
                                         {user?.role === 'admin' && (
@@ -204,7 +206,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
                             className={`px-3 py-2.5 rounded-xl ${isActive(link.href) ? 'text-amber-700 bg-amber-50' : 'text-stone-700 hover:bg-stone-50'}`}
                             style={{ fontSize: '0.9rem' }}
                         >
-                            {t(link.tKey)}
+                            {td(link.tKey)}
                         </Link>
                     ))}
                     <button

@@ -20,6 +20,8 @@ interface FeaturedShopsSectionProps {
 
 export default function FeaturedShopsSection({ cafes, loading, activeCategory, onCategoryChange, isPersonalized }: FeaturedShopsSectionProps) {
     const { t } = useTranslation('home');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
 
     return (
         <section className="py-20 bg-stone-50">
@@ -54,7 +56,7 @@ export default function FeaturedShopsSection({ cafes, loading, activeCategory, o
                     categories={CATEGORIES}
                     active={activeCategory}
                     onChange={onCategoryChange}
-                    getLabel={(cat) => t('featured.categories.' + cat)}
+                    getLabel={(cat) => td('featured.categories.' + cat)}
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

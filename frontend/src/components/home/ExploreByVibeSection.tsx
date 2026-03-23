@@ -8,6 +8,8 @@ import { VIBES } from '@utils/homeData';
 export default function ExploreByVibeSection() {
     const navigate = useNavigate();
     const { t } = useTranslation('home');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
 
     return (
         <section className="py-20 bg-white">
@@ -31,8 +33,8 @@ export default function ExploreByVibeSection() {
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-2xl" />
                             <div className="relative z-10">
                                 <div className="mb-3" style={{ fontSize: '2rem' }}>{vibe.emoji}</div>
-                                <div className="text-white mb-0.5" style={{ fontSize: '1rem', fontWeight: 700 }}>{t('vibes.items.' + i + '.name')}</div>
-                                <div className="text-white/60" style={{ fontSize: '0.78rem' }}>{t('vibes.items.' + i + '.count')}</div>
+                                <div className="text-white mb-0.5" style={{ fontSize: '1rem', fontWeight: 700 }}>{td('vibes.items.' + i + '.name')}</div>
+                                <div className="text-white/60" style={{ fontSize: '0.78rem' }}>{td('vibes.items.' + i + '.count')}</div>
                             </div>
                         </button>
                     ))}

@@ -12,6 +12,8 @@ export default function AISearchBar() {
     const [aiQuery, setAiQuery] = useState<string>('');
     const navigate = useNavigate();
     const { t } = useTranslation('home');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
     const AI_TAG_KEYS = ['specialtyCoffee', 'quietStudySpot', 'dogFriendly', 'outdoorSeating', 'coldBrew'];
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +49,7 @@ export default function AISearchBar() {
             <div className="flex flex-wrap items-center gap-2 mb-16">
                 <span className="text-stone-400" style={{ fontSize: '0.85rem' }}>Popular:</span>
                 {AI_TAG_KEYS.map(key => {
-                    const label = t(`aiSearch.tags.${key}`);
+                    const label = td(`aiSearch.tags.${key}`);
                     return (
                         <button
                             key={key}

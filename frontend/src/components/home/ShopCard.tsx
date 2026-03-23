@@ -16,7 +16,15 @@ interface ShopCardProps {
 
 export default function ShopCard({ cafe, index = 0 }: ShopCardProps) {
     const { t } = useTranslation('home');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
     const { t: tList } = useTranslation('cafeList');
+    const { t: tAmenities } = useTranslation('amenities');
+    const { t: tSpecialties } = useTranslation('specialties');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tAd = tAmenities as (key: string) => string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tSd = tSpecialties as (key: string) => string;
     const [liked, setLiked] = useState(false);
     const badge = getCafeBadge(cafe);
     const tags = getCafeTags(cafe);
@@ -44,7 +52,7 @@ export default function ShopCard({ cafe, index = 0 }: ShopCardProps) {
                         className={`absolute top-3 left-3 ${badge.color} text-white rounded-full px-3 py-1`}
                         style={{ fontSize: '0.72rem', fontWeight: 600 }}
                     >
-                        {t('badge.' + badge.key)}
+                        {td('badge.' + badge.key)}
                     </div>
                     <button
                         onClick={(e) => { e.preventDefault(); setLiked(!liked); }}
@@ -89,8 +97,8 @@ export default function ShopCard({ cafe, index = 0 }: ShopCardProps) {
                                     style={{ fontSize: '0.75rem' }}
                                 >
                                     {cafe.specialties?.includes(tag as SpecialtyType)
-                                        ? t(`specialties.${tag}`)
-                                        : t(`amenities.${tag}`)}
+                                        ? tSd(tag)
+                                        : tAd(tag)}
                                 </span>
                             ))}
                         </div>

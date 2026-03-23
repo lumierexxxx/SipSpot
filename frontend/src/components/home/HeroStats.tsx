@@ -5,10 +5,12 @@ import { useTranslation } from 'react-i18next';
 
 export default function HeroStats() {
     const { t } = useTranslation('home');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const td = t as (key: string) => string;
     const STATS = [
-        { value: '2,400+', label: t('stats.0.label') },
-        { value: '18K+', label: t('stats.1.label') },
-        { value: '50+', label: t('stats.2.label') },
+        { value: '2,400+', label: td('stats.0.label') },
+        { value: '18K+', label: td('stats.1.label') },
+        { value: '50+', label: td('stats.2.label') },
     ];
 
     return (
