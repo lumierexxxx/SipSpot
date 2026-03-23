@@ -332,7 +332,7 @@ export const checkAuthStatus = async () => {
 // 表单验证辅助函数
 // ============================================
 
-interface ValidationResult {
+export interface ValidationResult {
     isValid: boolean
     errors: Record<string, string>
 }

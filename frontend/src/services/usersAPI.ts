@@ -191,6 +191,30 @@ export const getUserReviews = async (userId: string, params: Record<string, unkn
 };
 
 // ============================================
+// 收藏状态切换
+// ============================================
+
+/**
+ * 切换收藏状态
+ * @param {string} cafeId - 咖啡店ID
+ * @param {boolean} isFavorited - 当前是否已收藏
+ * @returns {Promise<boolean>} 切换后的收藏状态
+ */
+export const toggleFavorite = async (cafeId: string, isFavorited: boolean): Promise<boolean> => {
+    try {
+        if (isFavorited) {
+            await removeFromFavorites(cafeId);
+            return false;
+        } else {
+            await addToFavorites(cafeId);
+            return true;
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
+// ============================================
 // 导出所有用户API方法
 // ============================================
 export default {
@@ -212,5 +236,8 @@ export default {
     // 其他用户
     getUserProfile,
     getUserCafes,
-    getUserReviews
+    getUserReviews,
+
+    // 收藏切换
+    toggleFavorite
 };

@@ -368,25 +368,6 @@ export const searchAndFilterCafes = (filters: Record<string, unknown>) => {
     }
 };
 
-/**
- * 切换收藏状态
- * @param {string} cafeId - 咖啡店ID
- * @param {boolean} isFavorited - 当前是否已收藏
- */
-export const toggleFavorite = async (cafeId: string, isFavorited: boolean): Promise<boolean> => {
-    try {
-        if (isFavorited) {
-            await removeFromFavorites(cafeId);
-            return false;
-        } else {
-            await addToFavorites(cafeId);
-            return true;
-        }
-    } catch (error) {
-        throw error;
-    }
-};
-
 // ============================================
 // 导出所有API方法
 // ============================================
@@ -424,6 +405,5 @@ export default {
     // Combined methods
     getCafeFullInfo,
     getRecommendedCafes,
-    searchAndFilterCafes,
-    toggleFavorite
+    searchAndFilterCafes
 };
