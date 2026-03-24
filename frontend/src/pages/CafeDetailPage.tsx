@@ -24,7 +24,7 @@ export default function CafeDetailPage() {
     const [loading, setLoading] = useState<boolean>(true)
     const [reviewsLoading, setReviewsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
-    const [isFavorited, setIsFavorited] = useState<boolean>(() => user?.favorites?.includes(id ?? '') ?? false)
+    const [isFavorited, setIsFavorited] = useState<boolean>(false)
     const [favoriteLoading, setFavoriteLoading] = useState<boolean>(false)
     const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
@@ -117,12 +117,9 @@ export default function CafeDetailPage() {
         loadCafeData()
     }, [loadCafeData])
 
-    const cafeId = cafe?._id
     useEffect(() => {
-        if (cafeId) {
-            loadReviews()
-        }
-    }, [loadReviews, cafeId])
+        loadReviews()
+    }, [loadReviews])
 
     useEffect(() => {
         if (user && cafe) {
@@ -145,7 +142,7 @@ export default function CafeDetailPage() {
                 favoriteCount: (prev.favoriteCount ?? 0) + (newState ? 1 : -1)
             } : prev)
         } catch {
-            // ignore
+            setReviewFeedback({ type: 'error', message: '收藏操作失败，请稍后重试' })
         } finally {
             setFavoriteLoading(false)
         }
