@@ -3,13 +3,13 @@
 // 咖啡店详情页面 - 包含AI总结和多维度评分展示
 // ============================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
 import Map from '@components/Map'
 import * as cafesAPI from '@services/cafesAPI'
 import * as usersAPI from '@services/usersAPI'
-import type { ICafe, CafeImage } from '@/types'
+import type { ICafe } from '@/types'
 import type { IReview } from '@/types'
 
 export default function CafeDetailPage() {
@@ -24,7 +24,9 @@ export default function CafeDetailPage() {
     const [loading, setLoading] = useState<boolean>(true)
     const [reviewsLoading, setReviewsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
-    const [isFavorited, setIsFavorited] = useState<boolean>(false)
+    const [isFavorited, setIsFavorited] = useState<boolean>(() => user?.favorites?.includes(id ?? '') ?? false)
+    const [favoriteLoading, setFavoriteLoading] = useState<boolean>(false)
+    const [reviewFeedback, setReviewFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
     // 分页和排序
     const [currentPage, setCurrentPage] = useState<number>(1)
@@ -36,59 +38,9 @@ export default function CafeDetailPage() {
     const [activeTab, setActiveTab] = useState<string>('overview')
 
     // ============================================
-    // 加载咖啡店数据
-    // ============================================
-    useEffect(() => {
-        loadCafeData()
-    }, [id])
-
-    useEffect(() => {
-        if (cafe) {
-            loadReviews()
-        }
-    }, [cafe, currentPage, sortBy])
-
-    useEffect(() => {
-        if (user && cafe) {
-            setIsFavorited(user.favorites?.includes(cafe._id) ?? false)
-        }
-    }, [user, cafe])
-
-    const loadCafeData = async (): Promise<void> => {
-        if (!id) return
-        try {
-            setLoading(true)
-            setError(null)
-            const response = await cafesAPI.getCafeById(id)
-            setCafe(response.data ?? null)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : '加载咖啡店失败')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const loadReviews = async (): Promise<void> => {
-        if (!id) return
-        try {
-            setReviewsLoading(true)
-            const response = await cafesAPI.getReviews(id, { page: currentPage, limit: 10, sort: sortBy })
-            const reviewsList = (response.data ?? []) as IReview[]
-            setReviews(reviewsList)
-            const pagination = (response as Record<string, unknown>).pagination as { pages?: number } | undefined
-            if (pagination?.pages) {
-                setTotalPages(pagination.pages)
-            }
-            calculateAverageRatings(reviewsList)
-        } catch {
-            // silently fail — reviews are non-critical
-        } finally {
-            setReviewsLoading(false)
-        }
-    }
-
     // 计算多维度平均评分
-    const calculateAverageRatings = (reviewsList: IReview[]): void => {
+    // ============================================
+    const calculateAverageRatings = useCallback((reviewsList: IReview[]): void => {
         if (!reviewsList || reviewsList.length === 0) {
             setAverageRatings(null)
             return
@@ -123,15 +75,69 @@ export default function CafeDetailPage() {
                 workspace: (totals.workspace / totals.count).toFixed(1)
             })
         }
-    }
+    }, [])
+
+    // ============================================
+    // 加载咖啡店数据
+    // ============================================
+    const loadCafeData = useCallback(async (): Promise<void> => {
+        if (!id) return
+        try {
+            setLoading(true)
+            setError(null)
+            const response = await cafesAPI.getCafeById(id)
+            setCafe(response.data ?? null)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '加载咖啡店失败')
+        } finally {
+            setLoading(false)
+        }
+    }, [id])
+
+    const loadReviews = useCallback(async (): Promise<void> => {
+        if (!id) return
+        try {
+            setReviewsLoading(true)
+            const response = await cafesAPI.getReviews(id, { page: currentPage, limit: 10, sort: sortBy })
+            const reviewsList = (response.data ?? []) as IReview[]
+            setReviews(reviewsList)
+            const pagination = (response as Record<string, unknown>).pagination as { pages?: number } | undefined
+            if (pagination?.pages) {
+                setTotalPages(pagination.pages)
+            }
+            calculateAverageRatings(reviewsList)
+        } catch {
+            // silently fail — reviews are non-critical
+        } finally {
+            setReviewsLoading(false)
+        }
+    }, [id, currentPage, sortBy, calculateAverageRatings])
+
+    useEffect(() => {
+        loadCafeData()
+    }, [loadCafeData])
+
+    const cafeId = cafe?._id
+    useEffect(() => {
+        if (cafeId) {
+            loadReviews()
+        }
+    }, [loadReviews, cafeId])
+
+    useEffect(() => {
+        if (user && cafe) {
+            setIsFavorited(user.favorites?.includes(cafe._id) ?? false)
+        }
+    }, [user, cafe])
 
     // ============================================
     // 处理收藏
     // ============================================
     const handleFavoriteToggle = async (): Promise<void> => {
         if (!isLoggedIn) { navigate('/login'); return }
-        if (!cafe) return
+        if (!cafe || favoriteLoading) return
         try {
+            setFavoriteLoading(true)
             const newState = await usersAPI.toggleFavorite(cafe._id, isFavorited)
             setIsFavorited(newState)
             setCafe(prev => prev ? {
@@ -140,6 +146,8 @@ export default function CafeDetailPage() {
             } : prev)
         } catch {
             // ignore
+        } finally {
+            setFavoriteLoading(false)
         }
     }
 
@@ -170,9 +178,9 @@ export default function CafeDetailPage() {
             await loadCafeData()
             await loadReviews()
             setShowReviewForm(false)
-            alert('评论提交成功！')
+            setReviewFeedback({ type: 'success', message: '评论提交成功！' })
         } catch (err) {
-            alert('提交失败: ' + (err instanceof Error ? err.message : '未知错误'))
+            setReviewFeedback({ type: 'error', message: '提交失败: ' + (err instanceof Error ? err.message : '未知错误') })
         }
     }
 
@@ -241,7 +249,7 @@ export default function CafeDetailPage() {
                 <div className="relative h-[500px] bg-gray-900">
                     <img
                         src={(() => {
-                            const img = cafe.images[0] as CafeImage | string
+                            const img = cafe.images[0]
                             return typeof img === 'string' ? img : (img?.url ?? img?.cardImage ?? '')
                         })()}
                         alt={cafe.name}
@@ -608,6 +616,12 @@ export default function CafeDetailPage() {
                                             </form>
                                         )}
 
+                                        {reviewFeedback && (
+                                            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-semibold ${reviewFeedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                                {reviewFeedback.message}
+                                            </div>
+                                        )}
+
                                         <div className="mb-4 flex items-center justify-between">
                                             <span className="text-sm text-gray-600 font-semibold">
                                                 共 {cafe.reviewCount || 0} 条评论
@@ -763,7 +777,8 @@ export default function CafeDetailPage() {
                         <div className="bg-white rounded-2xl shadow-lg p-6 lg:sticky lg:top-24">
                             <button
                                 onClick={handleFavoriteToggle}
-                                className={`w-full px-6 py-4 rounded-xl transition font-bold text-lg shadow-md flex items-center justify-center gap-3 ${
+                                disabled={favoriteLoading}
+                                className={`w-full px-6 py-4 rounded-xl transition font-bold text-lg shadow-md flex items-center justify-center gap-3 disabled:opacity-60 ${
                                     isFavorited
                                         ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600'
                                         : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300'
@@ -822,8 +837,7 @@ export default function CafeDetailPage() {
                                                 url: window.location.href
                                             }).catch(() => {})
                                         } else {
-                                            navigator.clipboard.writeText(window.location.href)
-                                            alert('链接已复制！')
+                                            navigator.clipboard.writeText(window.location.href).catch(() => {})
                                         }
                                     }}
                                     className="w-full px-4 py-3 bg-white hover:bg-gray-50 rounded-xl transition flex items-center justify-center gap-2 shadow-sm border-2 border-gray-200 font-semibold"
