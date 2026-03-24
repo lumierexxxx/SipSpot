@@ -63,18 +63,18 @@ export default function NearbyPage() {
             setUserLocation(location)
             await fetchNearbyCafes(location)
         } catch (err: unknown) {
-            const e = err as { name?: string; code?: number; message?: string }
+            const e = err as { name?: string; message?: string }
 
-            if (e.name === 'GeolocationPositionError' || e.code) {
-                setLocationError(getLocationErrorMessage(e.code ?? 0))
-            } else if (e.message?.includes('不支持定位')) {
+            if (e.name === 'GeolocationPositionError') {
+                setLocationError(getLocationErrorMessage((err as GeolocationPositionError).code))
+            } else if ((e as { message?: string }).message?.includes('不支持定位')) {
                 setLocationError({
                     title: '浏览器不支持定位',
                     message: '请使用现代浏览器或手动选择位置',
                     type: 'unsupported'
                 })
             } else {
-                setError(e.message ?? '未知错误')
+                setError((e as { message?: string }).message ?? '未知错误')
             }
             setLoading(false)
         }
@@ -105,7 +105,7 @@ export default function NearbyPage() {
                     message: '无法连接到后端服务器',
                     details: '请确认后端服务器正在运行'
                 })
-            } else if (!apiError) {
+            } else {
                 setError(e.message ?? '加载失败')
             }
         } finally {
@@ -142,11 +142,12 @@ export default function NearbyPage() {
         }
     }
 
-    const useDefaultLocation = async (): Promise<void> => {
+    const handleDefaultLocation = async (): Promise<void> => {
         try {
             setLoading(true)
             setLocationError(null)
             setApiError(null)
+            setError(null)
 
             const defaultLocation: SipSpotPosition = {
                 lat: 31.230416,
@@ -157,9 +158,7 @@ export default function NearbyPage() {
             await fetchNearbyCafes(defaultLocation)
         } catch (err: unknown) {
             const e = err as { message?: string }
-            if (!apiError) {
-                setError(e.message ?? '加载失败')
-            }
+            setError(e.message ?? '加载失败')
             setLoading(false)
         }
     }
@@ -323,7 +322,7 @@ export default function NearbyPage() {
                         </button>
 
                         <button
-                            onClick={useDefaultLocation}
+                            onClick={handleDefaultLocation}
                             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
                         >
                             📍 使用默认位置（上海人民广场）
