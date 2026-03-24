@@ -54,6 +54,10 @@ export interface ICafe {
   reviews: string[] | IReview[]
   aiSummary?: string
   isVerified?: boolean
+  viewCount?: number
+  favoriteCount?: number
+  phoneNumber?: string
+  website?: string
   createdAt: string
   updatedAt: string
 }

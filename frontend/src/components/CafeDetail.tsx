@@ -11,7 +11,7 @@ import type { ICafe, DayKey } from '@/types/cafe'
 // Props 接口
 // ============================================
 interface CafeDetailProps {
-  cafe: ICafe & { viewCount?: number; favoriteCount?: number }
+  cafe: ICafe
   isFavorited?: boolean
   onFavoriteToggle?: (cafeId: string, isFavorited: boolean) => void
   onEdit?: (cafe: ICafe) => void
@@ -54,12 +54,7 @@ export default function CafeDetail({
     openingHours = [],
     viewCount = 0,
     favoriteCount = 0,
-  } = cafe as ICafe & {
-    viewCount?: number
-    favoriteCount?: number
-    phoneNumber?: string
-    website?: string
-  }
+  } = cafe
 
   const cafeId = _id
   const authorId = typeof cafe.author === 'string' ? cafe.author : cafe.author._id
