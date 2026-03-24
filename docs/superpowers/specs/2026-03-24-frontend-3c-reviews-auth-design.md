@@ -119,13 +119,13 @@ const [formData, setFormData] = useState<ReviewFormData>({
 })
 const [images, setImages] = useState<File[]>([])
 const [imagePreviews, setImagePreviews] = useState<string[]>(
-  initialData?.images?.map(img => typeof img === 'string' ? img : '') ?? []
+  initialData?.images ?? []
 )
 const [errors, setErrors] = useState<Record<string, string>>({})
 const [submitting, setSubmitting] = useState<boolean>(false)
 ```
 
-Note: `initialData?.images` is `string[]` in `IReview` — no `CafeImage` union here.
+Note: `IReview.images` is `string[]` — not a `CafeImage` union. The original JSX accesses `img.url` which would be a compile error since elements are already strings. Fix: replace `initialData?.images?.map(img => img.url) || []` with `initialData?.images ?? []`.
 
 ### Event handler signatures
 
@@ -172,15 +172,25 @@ const renderStars = (rating: number): React.ReactElement => { ... }
 const formatDate = (dateString: string): string => { ... }
 ```
 
+### `useAuth()` destructure
+
+```ts
+const { user, userId, isAdmin, isOwner } = useAuth()
+```
+
+- `userId` is `string | null` (from AuthContext)
+- `isAdmin` is a **function** `() => boolean` — must be called as `isAdmin()`, not used as a boolean directly
+- `isOwner` is `(ownerId: string) => boolean`
+
 ### Author narrowing
 
-`review.author` is `string | IUser`. Narrow before JSX access (same pattern as CafeDetailPage.tsx):
+`review.author` is `string | IUser`. Narrow **once at the top of each map callback**, replacing ALL `review.author?.xxx` accesses with the narrowed variable:
 
 ```ts
 const author = typeof review.author === 'string' ? null : review.author
 ```
 
-Then use `author?.username`, `author?.avatar`, etc.
+Every access — including `review.author?._id`, `review.author?.id`, `review.author?.avatar`, `review.author?.username` — must use `author?._id`, `author?.avatar`, `author?.username`, etc. Do NOT leave any `review.author?.xxx` direct accesses in JSX as these will produce tsc errors.
 
 ### Imports
 
@@ -205,6 +215,10 @@ interface LoginFormData {
 ### State and handler types
 
 ```ts
+const [searchParams] = useSearchParams()        // URLSearchParams
+const redirectUrl: string = searchParams.get('redirect') || '/'
+const expired: string | null = searchParams.get('expired')
+
 const [formData, setFormData] = useState<LoginFormData>({ identifier: '', password: '' })
 const [errors, setErrors] = useState<Record<string, string>>({})
 const [loading, setLoading] = useState<boolean>(false)
@@ -217,6 +231,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 ### Imports
 
 Remove `import React`.
+Keep: `import { useNavigate, useSearchParams } from 'react-router-dom'`
+Keep: `import { validateLoginData } from '@services/authAPI'`
 
 ---
 
@@ -344,21 +360,33 @@ type VerifyStatus = 'verifying' | 'success' | 'error'
 type ResendStatus = 'idle' | 'loading' | 'sent' | 'error'
 ```
 
-### State types
+### State and handler types
 
 ```ts
 const { token } = useParams<{ token: string }>()
+const navigate = useNavigate()
+const { isLoggedIn, refreshUser } = useAuth()
+
 const [status, setStatus] = useState<VerifyStatus>('verifying')
 const [errorMsg, setErrorMsg] = useState<string>('')
 const [resendStatus, setResendStatus] = useState<ResendStatus>('idle')
 const [resendError, setResendError] = useState<string>('')
+
+const handleResend = async (): Promise<void> => { ... }
 ```
 
-Uses `get()` from `@services/api` (not a named authAPI function) — keep as-is, no service layer change.
+`refreshUser` is called as `await refreshUser()` — its return type from AuthContext is `Promise<IUser | null>`.
+
+Uses `get()` from `@services/api` as a named import — keep the import `import { get } from '@services/api'` exactly as-is (named export, not default).
 
 ### Imports
 
 Remove `import React`.
+Keep: `import { useEffect, useState } from 'react'`
+Keep: `import { useParams, useNavigate } from 'react-router-dom'`
+Keep: `import { get } from '@services/api'`
+Keep: `import { resendVerificationEmail } from '@services/authAPI'`
+Keep: `import { useAuth } from '@contexts/AuthContext'`
 
 ---
 
