@@ -142,7 +142,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 ### Imports
 
 Remove `import React` (React 19 JSX transform — consistent with all 3A/3B migrated files).
-Keep `import { useState } from 'react'`.
+Keep: `import { useState } from 'react'`
+Keep: `import { useAuth } from '@contexts/AuthContext'`
+Add: `const { isLoggedIn } = useAuth()` (no type annotation needed — inferred from AuthContext)
 
 ---
 
@@ -168,9 +170,11 @@ interface ReviewListProps {
 ### Helper function signatures
 
 ```ts
-const renderStars = (rating: number): React.ReactElement => { ... }
+const renderStars = (rating: number): JSX.Element => { ... }
 const formatDate = (dateString: string): string => { ... }
 ```
+
+Note: use `JSX.Element` (not `React.ReactElement`) — consistent with 3A/3B render helpers, and avoids a compile error when `import React` is removed.
 
 ### `useAuth()` destructure
 
@@ -192,10 +196,17 @@ const author = typeof review.author === 'string' ? null : review.author
 
 Every access — including `review.author?._id`, `review.author?.id`, `review.author?.avatar`, `review.author?.username` — must use `author?._id`, `author?.avatar`, `author?.username`, etc. Do NOT leave any `review.author?.xxx` direct accesses in JSX as these will produce tsc errors.
 
+### `review.images` access
+
+The source accesses `image.url || image` — treating each element as `{ url: string } | string`. However `IReview.images` is `string[]`, so `.url` would be a compile error. Fix: change `image.url || image` to just `image` everywhere in ReviewList.tsx (since the elements are already plain strings).
+
 ### Imports
 
 Remove `import React` (React 19 JSX transform).
-Add `import type { IReview } from '@/types'` and `import type { IUser } from '@/types'` (IUser needed for the narrowed author).
+Keep: `import { useState } from 'react'`
+Keep: `import { useAuth } from '@contexts/AuthContext'`
+Add: `import type { IReview } from '@/types'`
+Add: `import type { IUser } from '@/types'` (IUser needed for the narrowed author type)
 
 ---
 
@@ -303,6 +314,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 ### Imports
 
 Remove `import React`.
+Keep: `import { useState } from 'react'`
+Keep: `import { forgotPassword } from '@services/authAPI'`
 
 ---
 
@@ -346,6 +359,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 ### Imports
 
 Remove `import React`.
+Keep: `import { useState } from 'react'`
+Keep: `import { useParams, useNavigate } from 'react-router-dom'`
+Keep: `import { resetPassword } from '@services/authAPI'`
+Add: `const navigate = useNavigate()` (typed automatically, no annotation needed)
 
 ---
 
