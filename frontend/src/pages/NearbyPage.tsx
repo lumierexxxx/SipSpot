@@ -3,13 +3,11 @@
 // 附近咖啡店页面 - 基于地理位置
 // ============================================
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CafeCard from '@components/CafeCard'
 import Map from '@components/Map'
-import { useGeolocation } from '@hooks/useGeolocation'
 // @ts-ignore — mapUtils is plain JS; types are handled via casts below
-import { sortCafesByDistance } from '@utils/mapUtils'
+import { getUserLocation, sortCafesByDistance, formatDistance } from '@utils/mapUtils'
 import * as cafesAPI from '@services/cafesAPI'
 import type { ICafe } from '@/types'
 
@@ -17,93 +15,260 @@ import type { ICafe } from '@/types'
 // Local types
 // ============================================
 
+interface SipSpotPosition {
+    lat: number
+    lng: number
+}
+
+interface LocationError {
+    title: string
+    message: string
+    type: string
+}
+
+interface ApiError {
+    type: string
+    message: string
+    details?: string
+}
+
 type CafeWithDistance = ICafe & { distance: number }
 
 // ============================================
 // NearbyPage Component
 // ============================================
 
-const NearbyPage = () => {
+export default function NearbyPage() {
     const navigate = useNavigate()
-    const {
-        position,
-        loading: locationLoading,
-        error: locationError,
-        getCurrentPosition,
-    } = useGeolocation()
-
-    // 数据状态
     const [cafes, setCafes] = useState<CafeWithDistance[]>([])
-    const [loading, setLoading] = useState<boolean>(false)
+    const [userLocation, setUserLocation] = useState<SipSpotPosition | null>(null)
+    const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
+    const [distance, setDistance] = useState<number>(5)
+    const [locationError, setLocationError] = useState<LocationError | null>(null)
+    const [apiError, setApiError] = useState<ApiError | null>(null)
 
-    // 搜索参数（单位：米）
-    const [distance, setDistance] = useState<number>(5000)
+    useEffect(() => {
+        loadNearbyCafes()
+    }, [distance])
 
-    // 视图模式
-    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid')
-
-    // ============================================
-    // 加载附近咖啡店
-    // ============================================
-    const loadNearbyCafes = useCallback(async (): Promise<void> => {
-        if (!position?.latitude || !position?.longitude) return
+    const loadNearbyCafes = async (): Promise<void> => {
+        setLoading(true)
+        setError(null)
+        setLocationError(null)
+        setApiError(null)
 
         try {
-            setLoading(true)
-            setError(null)
+            const location: SipSpotPosition = await getUserLocation()
+            setUserLocation(location)
+            await fetchNearbyCafes(location)
+        } catch (err: unknown) {
+            const e = err as { name?: string; code?: number; message?: string }
 
+            if (e.name === 'GeolocationPositionError' || e.code) {
+                setLocationError(getLocationErrorMessage(e.code ?? 0))
+            } else if (e.message?.includes('不支持定位')) {
+                setLocationError({
+                    title: '浏览器不支持定位',
+                    message: '请使用现代浏览器或手动选择位置',
+                    type: 'unsupported'
+                })
+            } else {
+                setError(e.message ?? '未知错误')
+            }
+            setLoading(false)
+        }
+    }
+
+    const fetchNearbyCafes = async (location: SipSpotPosition): Promise<void> => {
+        try {
             const response = await cafesAPI.getNearbyCafes({
-                lat: position.latitude,
-                lng: position.longitude,
-                distance,
+                lat: location.lat,
+                lng: location.lng,
+                distance: distance * 1000,
             })
 
             const cafesData = (response.data ?? []) as ICafe[]
             const cafesWithDistance = sortCafesByDistance(
                 cafesData,
-                position.latitude,
-                position.longitude
+                location.lat,
+                location.lng
             ) as CafeWithDistance[]
 
             setCafes(cafesWithDistance)
-        } catch (err) {
-            const message = err instanceof Error ? err.message : '加载失败'
-            setError(message)
+        } catch (err: unknown) {
+            const e = err as { message?: string }
+
+            if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
+                setApiError({
+                    type: 'network',
+                    message: '无法连接到后端服务器',
+                    details: '请确认后端服务器正在运行'
+                })
+            } else if (!apiError) {
+                setError(e.message ?? '加载失败')
+            }
         } finally {
             setLoading(false)
         }
-    }, [position, distance])
+    }
 
-    useEffect(() => {
-        if (position?.latitude && position?.longitude) {
-            loadNearbyCafes()
+    const getLocationErrorMessage = (code: number): LocationError => {
+        switch (code) {
+            case 1:
+                return {
+                    title: '位置权限被拒绝',
+                    message: '请在浏览器设置中允许访问您的位置',
+                    type: 'permission'
+                }
+            case 2:
+                return {
+                    title: '无法获取位置',
+                    message: '请确保设备的位置服务已开启',
+                    type: 'unavailable'
+                }
+            case 3:
+                return {
+                    title: '定位超时',
+                    message: '获取位置信息超时，请重试',
+                    type: 'timeout'
+                }
+            default:
+                return {
+                    title: '定位失败',
+                    message: '无法获取您的位置信息',
+                    type: 'unknown'
+                }
         }
-    }, [position, distance, loadNearbyCafes])
+    }
 
-    // ============================================
-    // 处理距离变化
-    // ============================================
-    const handleDistanceChange = (newDistance: number): void => {
-        setDistance(newDistance)
+    const useDefaultLocation = async (): Promise<void> => {
+        try {
+            setLoading(true)
+            setLocationError(null)
+            setApiError(null)
+
+            const defaultLocation: SipSpotPosition = {
+                lat: 31.230416,
+                lng: 121.473701
+            }
+
+            setUserLocation(defaultLocation)
+            await fetchNearbyCafes(defaultLocation)
+        } catch (err: unknown) {
+            const e = err as { message?: string }
+            if (!apiError) {
+                setError(e.message ?? '加载失败')
+            }
+            setLoading(false)
+        }
     }
 
     // ============================================
-    // 准备地图中心点
+    // 渲染API错误（非JSON响应）
     // ============================================
-    const mapCenter: [number, number] | undefined = position?.longitude && position?.latitude
-        ? [position.longitude, position.latitude]
-        : undefined
+    if (apiError) {
+        return (
+            <div className="max-w-3xl mx-auto px-4 py-8">
+                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-8">
+                    <div className="text-center mb-6">
+                        <div className="text-6xl mb-4">🔌</div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            后端API连接失败
+                        </h2>
+                        <p className="text-gray-600 mb-2">
+                            {apiError.message}
+                        </p>
+                        {apiError.type === 'not_json' && (
+                            <p className="text-sm text-red-600">
+                                服务器返回了HTML错误页面而不是JSON数据
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="bg-white rounded-lg p-6 mb-6">
+                        <h3 className="font-bold text-lg mb-4">🔍 问题诊断：</h3>
+
+                        <div className="space-y-4 text-sm">
+                            <div>
+                                <p className="font-semibold text-gray-700 mb-2">可能的原因：</p>
+                                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                                    <li>后端服务器未启动</li>
+                                    <li>API端点配置错误</li>
+                                    <li>环境变量VITE_API_URL配置不正确</li>
+                                    <li>CORS配置问题</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <p className="font-semibold text-gray-700 mb-2">解决步骤：</p>
+                                <ol className="list-decimal list-inside space-y-2 text-gray-600">
+                                    <li>
+                                        <span className="font-semibold">检查后端服务器：</span>
+                                        <div className="ml-6 mt-1 p-2 bg-gray-100 rounded font-mono text-xs">
+                                            cd backend<br/>
+                                            npm run dev
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <span className="font-semibold">验证API URL：</span>
+                                        <div className="ml-6 mt-1">
+                                            <p className="text-xs">当前配置: <code className="bg-gray-100 px-1">{import.meta.env.VITE_API_URL || '未配置'}</code></p>
+                                            <p className="text-xs mt-1">应该是: <code className="bg-gray-100 px-1">http://localhost:5001/api</code></p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <span className="font-semibold">测试API端点：</span>
+                                        <div className="ml-6 mt-1 p-2 bg-gray-100 rounded font-mono text-xs break-all">
+                                            curl http://localhost:5001/api/cafes/nearby?lng=121.47&lat=31.23&distance=5000
+                                        </div>
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 调试信息 */}
+                    {import.meta.env.DEV && apiError.details && (
+                        <details className="mb-6">
+                            <summary className="cursor-pointer text-sm font-semibold text-gray-700 hover:text-gray-900 mb-2">
+                                🔧 调试信息
+                            </summary>
+                            <div className="p-4 bg-gray-100 rounded text-xs font-mono space-y-1">
+                                <p className="text-xs font-mono">{apiError.details}</p>
+                            </div>
+                        </details>
+                    )}
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+                        >
+                            🔄 重新加载页面
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/cafes')}
+                            className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                        >
+                            ← 返回咖啡馆列表
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     // ============================================
     // 渲染加载状态
     // ============================================
-    if (locationLoading) {
+    if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 py-8">
                 <div className="text-center">
-                    <div className="inline-block w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-gray-600">正在获取您的位置...</p>
+                    <div className="text-6xl mb-4 animate-pulse">📍</div>
+                    <p className="text-gray-600 text-lg">正在获取您的位置...</p>
                 </div>
             </div>
         )
@@ -112,51 +277,64 @@ const NearbyPage = () => {
     // ============================================
     // 渲染位置错误
     // ============================================
-    if (locationError || (!position && !locationLoading)) {
+    if (locationError) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-                <div className="max-w-md w-full text-center">
-                    <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        需要您的位置
-                    </h2>
-                    <p className="text-gray-600 mb-6">
-                        {locationError?.message ?? '请允许访问您的位置以查找附近的咖啡店'}
-                    </p>
-                    <div className="space-y-3">
-                        <button
-                            onClick={getCurrentPosition}
-                            className="w-full btn btn-primary"
-                        >
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            获取我的位置
-                        </button>
-                        <button
-                            onClick={() => navigate('/cafes')}
-                            className="w-full btn btn-ghost"
-                        >
-                            浏览所有咖啡店
-                        </button>
+            <div className="max-w-3xl mx-auto px-4 py-8">
+                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-8">
+                    <div className="text-center mb-6">
+                        <div className="text-6xl mb-4">
+                            {locationError.type === 'permission' ? '🔒' :
+                             locationError.type === 'unavailable' ? '📡' : '⏱️'}
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {locationError.title}
+                        </h2>
+                        <p className="text-gray-600 mb-6">
+                            {locationError.message}
+                        </p>
                     </div>
 
-                    {/* 使用提示 */}
-                    <div className="mt-8 p-4 bg-blue-50 rounded-lg text-left">
-                        <p className="text-sm text-blue-800 font-medium mb-2">
-                            💡 如何启用位置访问：
-                        </p>
-                        <ul className="text-sm text-blue-700 space-y-1">
-                            <li>1. 点击浏览器地址栏的位置图标</li>
-                            <li>2. 选择"允许"或"始终允许"</li>
-                            <li>3. 刷新页面</li>
-                        </ul>
+                    <div className="bg-white rounded-lg p-6 mb-6">
+                        <h3 className="font-bold text-lg mb-4">💡 解决方法：</h3>
+
+                        {locationError.type === 'permission' && (
+                            <div className="space-y-3 text-sm text-gray-700">
+                                <div>1. 点击浏览器地址栏左侧的锁图标</div>
+                                <div>2. 找到"位置"或"Location"权限</div>
+                                <div>3. 选择"允许"，然后重试</div>
+                            </div>
+                        )}
+
+                        {locationError.type === 'unavailable' && (
+                            <div className="space-y-3 text-sm text-gray-700">
+                                <div>1. 确保系统位置服务已开启</div>
+                                <div>2. 移动到窗边或室外</div>
+                                <div>3. 或使用下方的默认位置</div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={loadNearbyCafes}
+                            className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                        >
+                            🔄 重试获取位置
+                        </button>
+
+                        <button
+                            onClick={useDefaultLocation}
+                            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                        >
+                            📍 使用默认位置（上海人民广场）
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/cafes')}
+                            className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                        >
+                            ← 返回咖啡馆列表
+                        </button>
                     </div>
                 </div>
             </div>
@@ -164,176 +342,130 @@ const NearbyPage = () => {
     }
 
     // ============================================
-    // 主内容渲染
+    // 渲染其他错误
     // ============================================
-    return (
-        <div className="bg-gray-50 min-h-screen py-8">
-            <div className="container-custom">
-                {/* 页面头部 */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        附近的咖啡店
-                    </h1>
-                    <p className="text-gray-600">
-                        {position && `在您周围 ${distance / 1000} 公里内找到 ${cafes.length} 家咖啡店`}
-                    </p>
-                </div>
-
-                {/* 控制栏 */}
-                <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        {/* 距离选择 */}
-                        <div className="flex items-center space-x-4">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                搜索半径:
-                            </label>
-                            <div className="flex items-center space-x-2">
-                                {[1000, 2000, 5000, 10000].map(dist => (
-                                    <button
-                                        key={dist}
-                                        onClick={() => handleDistanceChange(dist)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                            distance === dist
-                                                ? 'bg-amber-500 text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        {dist / 1000}km
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* 视图切换 */}
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                                    viewMode === 'grid'
-                                        ? 'bg-amber-500 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                </svg>
-                                <span className="hidden sm:inline">网格</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode('map')}
-                                className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                                    viewMode === 'map'
-                                        ? 'bg-amber-500 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                                </svg>
-                                <span className="hidden sm:inline">地图</span>
-                            </button>
-                        </div>
-
-                        {/* 刷新按钮 */}
+    if (error) {
+        return (
+            <div className="max-w-7xl mx-auto px-4 py-8">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <div className="text-4xl mb-4">❌</div>
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <div className="space-y-2">
                         <button
                             onClick={loadNearbyCafes}
-                            disabled={loading}
-                            className="btn btn-ghost"
+                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 mx-2"
                         >
-                            <svg className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            刷新
+                            重试
+                        </button>
+                        <button
+                            onClick={() => navigate('/cafes')}
+                            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 mx-2"
+                        >
+                            返回列表
                         </button>
                     </div>
                 </div>
-
-                {/* 加载状态 */}
-                {loading && (
-                    <div className="flex items-center justify-center py-20">
-                        <div className="text-center">
-                            <div className="inline-block w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-                            <p className="text-gray-600">加载中...</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* 错误状态 */}
-                {error && !loading && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                        <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-red-800 font-medium mb-2">加载失败</p>
-                        <p className="text-red-600 text-sm mb-4">{error}</p>
-                        <button onClick={loadNearbyCafes} className="btn btn-primary">
-                            重试
-                        </button>
-                    </div>
-                )}
-
-                {/* 内容区域 */}
-                {!loading && !error && (
-                    <>
-                        {/* 网格视图 */}
-                        {viewMode === 'grid' && (
-                            <>
-                                {cafes.length > 0 ? (
-                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {cafes.map(cafe => (
-                                            <CafeCard
-                                                key={cafe._id}
-                                                cafe={cafe}
-                                                showDistance
-                                                distance={cafe.distance}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                                        <div className="text-6xl mb-4">🔍</div>
-                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                            附近没有找到咖啡店
-                                        </h3>
-                                        <p className="text-gray-600 mb-6">
-                                            尝试扩大搜索范围或浏览所有咖啡店
-                                        </p>
-                                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                            <button
-                                                onClick={() => handleDistanceChange(10000)}
-                                                className="btn btn-primary"
-                                            >
-                                                扩大到10公里
-                                            </button>
-                                            <button
-                                                onClick={() => navigate('/cafes')}
-                                                className="btn btn-ghost"
-                                            >
-                                                浏览所有咖啡店
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {/* 地图视图 */}
-                        {viewMode === 'map' && (
-                            <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                                <Map
-                                    cafes={cafes}
-                                    center={mapCenter}
-                                    zoom={13}
-                                    height="600px"
-                                    showUserLocation
-                                />
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
+        )
+    }
+
+    // ============================================
+    // 主渲染
+    // ============================================
+    return (
+        <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                    <span>📍</span>
+                    <span>附近的咖啡馆</span>
+                </h1>
+                <p className="text-gray-600">
+                    找到 <span className="font-semibold text-green-600">{cafes.length}</span> 家咖啡馆，在 {distance}公里范围内
+                </p>
+            </div>
+
+            <div className="mb-6 flex gap-2">
+                {[1, 3, 5, 10, 20].map(d => (
+                    <button
+                        key={d}
+                        onClick={() => setDistance(d)}
+                        className={`px-4 py-2 rounded-lg transition font-semibold ${
+                            distance === d
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                    >
+                        {d}公里
+                    </button>
+                ))}
+            </div>
+
+            {userLocation && (
+                <div className="mb-8 rounded-lg overflow-hidden shadow-lg">
+                    <Map
+                        cafes={cafes}
+                        center={[userLocation.lng, userLocation.lat]}
+                        zoom={distance <= 3 ? 14 : distance <= 5 ? 13 : 12}
+                        height="500px"
+                        showUserLocation={true}
+                        onMarkerClick={(cafe: ICafe) => navigate(`/cafes/${cafe._id}`)}
+                    />
+                </div>
+            )}
+
+            {cafes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {cafes.map(cafe => (
+                        <div
+                            key={cafe._id}
+                            onClick={() => navigate(`/cafes/${cafe._id}`)}
+                            className="bg-white rounded-lg shadow hover:shadow-xl transition cursor-pointer overflow-hidden group"
+                        >
+                            {cafe.images?.[0] && (
+                                <div className="relative h-48">
+                                    <img
+                                        src={(() => {
+                                            const img = cafe.images[0]
+                                            return typeof img === 'string' ? img : (img?.url ?? img?.cardImage ?? '')
+                                        })()}
+                                        alt={cafe.name}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                                    />
+                                    <div className="absolute top-2 right-2 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                        📍 {formatDistance(cafe.distance)}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="p-4">
+                                <h3 className="font-bold text-lg mb-2">{cafe.name}</h3>
+                                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                    <span>⭐ {cafe.rating?.toFixed(1)}</span>
+                                    <span>•</span>
+                                    <span>💰 {'$'.repeat(cafe.price || 2)}</span>
+                                </div>
+                                {cafe.description && (
+                                    <p className="text-gray-600 text-sm line-clamp-2">
+                                        {cafe.description}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-16">
+                    <div className="text-6xl mb-4">☕</div>
+                    <p className="text-xl text-gray-600 mb-2">
+                        附近{distance}公里内没有找到咖啡馆
+                    </p>
+                    <button
+                        onClick={() => navigate('/cafes')}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                        查看所有咖啡馆
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
-
-export default NearbyPage
