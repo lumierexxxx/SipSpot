@@ -70,7 +70,10 @@ helpfulVotes?: Array<{ user: string; vote: 'helpful' | 'not-helpful' }>
 helpfulCount?: number
 isEdited?: boolean
 isVerifiedVisit?: boolean
+visitDate?: string
 ```
+
+Note: `visitDate` is added because `ReviewForm.jsx` reads `initialData?.visitDate` in its state initializer. Without it on `IReview`, accessing `initialData?.visitDate` (where `initialData` is `Partial<IReview>`) would be a compile error.
 
 No existing fields are removed or renamed.
 
@@ -121,11 +124,13 @@ const [images, setImages] = useState<File[]>([])
 const [imagePreviews, setImagePreviews] = useState<string[]>(
   initialData?.images ?? []
 )
-const [errors, setErrors] = useState<Record<string, string>>({})
+const [errors, setErrors] = useState<Record<string, string | null>>({})
 const [submitting, setSubmitting] = useState<boolean>(false)
 ```
 
 Note: `IReview.images` is `string[]` — not a `CafeImage` union. The original JSX accesses `img.url` which would be a compile error since elements are already strings. Fix: replace `initialData?.images?.map(img => img.url) || []` with `initialData?.images ?? []`.
+
+Note: `errors` uses `Record<string, string | null>` (not `Record<string, string>`) because the source clears individual fields by setting them to `null` in several handlers. Using `string` alone would be a compile error on those assignments.
 
 ### Event handler signatures
 
@@ -242,7 +247,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 ### Imports
 
 Remove `import React`.
+Keep: `import { useState } from 'react'`
 Keep: `import { useNavigate, useSearchParams } from 'react-router-dom'`
+Keep: `import { useAuth } from '@contexts/AuthContext'`
 Keep: `import { validateLoginData } from '@services/authAPI'`
 
 ---
@@ -287,7 +294,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> 
 
 ### Imports
 
-Remove `import React`. Keep `import { Link, useNavigate } from 'react-router-dom'`.
+Remove `import React`.
+Keep: `import { useState } from 'react'`
+Keep: `import { Link, useNavigate } from 'react-router-dom'`
+Keep: `import { useAuth } from '@contexts/AuthContext'` (this is the alias-fixed import from the Import fix section above — the relative path is replaced but the import itself is kept)
 
 ---
 
