@@ -3,94 +3,97 @@
 // 附近咖啡店页面 - 基于地理位置
 // ============================================
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import CafeCard from '../components/CafeCard';
-import Map from '../components/Map';
-import { getNearbyCafes } from '../services/cafesAPI';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import CafeCard from '@components/CafeCard'
+import Map from '@components/Map'
+import { useGeolocation } from '@hooks/useGeolocation'
+// @ts-ignore — mapUtils is plain JS; types are handled via casts below
+import { sortCafesByDistance } from '@utils/mapUtils'
+import * as cafesAPI from '@services/cafesAPI'
+import type { ICafe } from '@/types'
+
+// ============================================
+// Local types
+// ============================================
+
+type CafeWithDistance = ICafe & { distance: number }
+
+// ============================================
+// NearbyPage Component
+// ============================================
 
 const NearbyPage = () => {
-    const navigate = useNavigate();
-    const { location, loading: locationLoading, error: locationError, getCurrentLocation } = useGeolocation();
+    const navigate = useNavigate()
+    const {
+        position,
+        loading: locationLoading,
+        error: locationError,
+        getCurrentPosition,
+    } = useGeolocation()
 
     // 数据状态
-    const [cafes, setCafes] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [cafes, setCafes] = useState<CafeWithDistance[]>([])
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<string | null>(null)
 
-    // 搜索参数
-    const [distance, setDistance] = useState(5000); // 默认5公里
-    const [limit, setLimit] = useState(20);
+    // 搜索参数（单位：米）
+    const [distance, setDistance] = useState<number>(5000)
 
     // 视图模式
-    const [viewMode, setViewMode] = useState('grid'); // grid or map
+    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid')
 
     // ============================================
     // 加载附近咖啡店
     // ============================================
-    useEffect(() => {
-        if (location && location.lat && location.lng) {
-            loadNearbyCafes();
-        }
-    }, [location, distance, limit, loadNearbyCafes]);
-
-    const loadNearbyCafes =useCallback (async () => {
-        if (!location || !location.lat || !location.lng) return;
+    const loadNearbyCafes = useCallback(async (): Promise<void> => {
+        if (!position?.latitude || !position?.longitude) return
 
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
-            const response = await getNearbyCafes({
-                lat: location.lat,
-                lng: location.lng,
-                distance: distance,
-                limit: limit
-            });
+            const response = await cafesAPI.getNearbyCafes({
+                lat: position.latitude,
+                lng: position.longitude,
+                distance,
+            })
 
-            setCafes(response.data || []);
+            const cafesData = (response.data ?? []) as ICafe[]
+            const cafesWithDistance = sortCafesByDistance(
+                cafesData,
+                position.latitude,
+                position.longitude
+            ) as CafeWithDistance[]
 
+            setCafes(cafesWithDistance)
         } catch (err) {
-            console.error('Failed to load nearby cafes:', err);
-            setError(err.response?.data?.message || '加载失败');
+            const message = err instanceof Error ? err.message : '加载失败'
+            setError(message)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    },[]);
+    }, [position, distance])
+
+    useEffect(() => {
+        if (position?.latitude && position?.longitude) {
+            loadNearbyCafes()
+        }
+    }, [position, distance, loadNearbyCafes])
 
     // ============================================
     // 处理距离变化
     // ============================================
-    const handleDistanceChange = (newDistance) => {
-        setDistance(newDistance);
-    };
-
-    // ============================================
-    // 准备地图标记
-    // ============================================
-    const mapMarkers = cafes.map(cafe => ({
-        id: cafe._id || cafe.id,
-        position: {
-            lat: cafe.geometry.coordinates[1],
-            lng: cafe.geometry.coordinates[0]
-        },
-        title: cafe.name,
-        cafe: cafe
-    }));
-
-    // 添加用户位置标记
-    if (location && location.lat && location.lng) {
-        mapMarkers.push({
-            id: 'user-location',
-            position: {
-                lat: location.lat,
-                lng: location.lng
-            },
-            title: '您的位置',
-            isUserLocation: true
-        });
+    const handleDistanceChange = (newDistance: number): void => {
+        setDistance(newDistance)
     }
+
+    // ============================================
+    // 准备地图中心点
+    // ============================================
+    const mapCenter: [number, number] | undefined = position?.longitude && position?.latitude
+        ? [position.longitude, position.latitude]
+        : undefined
 
     // ============================================
     // 渲染加载状态
@@ -103,13 +106,13 @@ const NearbyPage = () => {
                     <p className="text-gray-600">正在获取您的位置...</p>
                 </div>
             </div>
-        );
+        )
     }
 
     // ============================================
     // 渲染位置错误
     // ============================================
-    if (locationError || (!location && !locationLoading)) {
+    if (locationError || (!position && !locationLoading)) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
                 <div className="max-w-md w-full text-center">
@@ -123,11 +126,11 @@ const NearbyPage = () => {
                         需要您的位置
                     </h2>
                     <p className="text-gray-600 mb-6">
-                        {locationError || '请允许访问您的位置以查找附近的咖啡店'}
+                        {locationError?.message ?? '请允许访问您的位置以查找附近的咖啡店'}
                     </p>
                     <div className="space-y-3">
                         <button
-                            onClick={getCurrentLocation}
+                            onClick={getCurrentPosition}
                             className="w-full btn btn-primary"
                         >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +160,7 @@ const NearbyPage = () => {
                     </div>
                 </div>
             </div>
-        );
+        )
     }
 
     // ============================================
@@ -172,7 +175,7 @@ const NearbyPage = () => {
                         附近的咖啡店
                     </h1>
                     <p className="text-gray-600">
-                        {location && `在您周围 ${distance / 1000} 公里内找到 ${cafes.length} 家咖啡店`}
+                        {position && `在您周围 ${distance / 1000} 公里内找到 ${cafes.length} 家咖啡店`}
                     </p>
                 </div>
 
@@ -278,7 +281,12 @@ const NearbyPage = () => {
                                 {cafes.length > 0 ? (
                                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {cafes.map(cafe => (
-                                            <CafeCard key={cafe._id || cafe.id} cafe={cafe} />
+                                            <CafeCard
+                                                key={cafe._id}
+                                                cafe={cafe}
+                                                showDistance
+                                                distance={cafe.distance}
+                                            />
                                         ))}
                                     </div>
                                 ) : (
@@ -313,13 +321,11 @@ const NearbyPage = () => {
                         {viewMode === 'map' && (
                             <div className="bg-white rounded-xl shadow-md overflow-hidden">
                                 <Map
-                                    center={{
-                                        lat: location.lat,
-                                        lng: location.lng
-                                    }}
-                                    markers={mapMarkers}
+                                    cafes={cafes}
+                                    center={mapCenter}
                                     zoom={13}
                                     height="600px"
+                                    showUserLocation
                                 />
                             </div>
                         )}
@@ -327,7 +333,7 @@ const NearbyPage = () => {
                 )}
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default NearbyPage;
+export default NearbyPage
