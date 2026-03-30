@@ -3,112 +3,120 @@
 // 用户注册页面
 // ============================================
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@contexts/AuthContext'
+
+interface RegisterFormData {
+  username: string
+  email: string
+  password: string
+  confirmPassword: string
+}
 
 const Register = () => {
-    const navigate = useNavigate();
-    const { register } = useAuth();
-    
-    const [formData, setFormData] = useState({
+    const navigate = useNavigate()
+    const { register } = useAuth()
+
+    const [formData, setFormData] = useState<RegisterFormData>({
         username: '',
         email: '',
         password: '',
         confirmPassword: ''
-    });
-    
-    const [errors, setErrors] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [serverError, setServerError] = useState('');
+    })
+
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [serverError, setServerError] = useState<string>('')
 
     // 表单验证
-    const validateForm = () => {
-        const newErrors = {};
-        
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {}
+
         // 用户名验证
         if (!formData.username.trim()) {
-            newErrors.username = '请输入用户名';
+            newErrors.username = '请输入用户名'
         } else if (formData.username.length < 3) {
-            newErrors.username = '用户名至少3个字符';
+            newErrors.username = '用户名至少3个字符'
         } else if (formData.username.length > 30) {
-            newErrors.username = '用户名最多30个字符';
+            newErrors.username = '用户名最多30个字符'
         }
-        
+
         // 邮箱验证
         if (!formData.email.trim()) {
-            newErrors.email = '请输入邮箱';
+            newErrors.email = '请输入邮箱'
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = '请输入有效的邮箱地址';
+            newErrors.email = '请输入有效的邮箱地址'
         }
-        
+
         // 密码验证
         if (!formData.password) {
-            newErrors.password = '请输入密码';
+            newErrors.password = '请输入密码'
         } else if (formData.password.length < 6) {
-            newErrors.password = '密码至少6个字符';
+            newErrors.password = '密码至少6个字符'
         }
-        
+
         // 确认密码验证
         if (!formData.confirmPassword) {
-            newErrors.confirmPassword = '请确认密码';
+            newErrors.confirmPassword = '请确认密码'
         } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = '两次密码不一致';
+            newErrors.confirmPassword = '两次密码不一致'
         }
-        
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
 
     // 处理输入变化
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
+        const { name, value } = e.target
         setFormData(prev => ({
             ...prev,
             [name]: value
-        }));
-        
+        }))
+
         // 清除该字段的错误
-        if (errors[name]) {
+        if (errors[name as keyof RegisterFormData]) {
             setErrors(prev => ({
                 ...prev,
                 [name]: ''
-            }));
+            }))
         }
-        setServerError('');
-    };
+        setServerError('')
+    }
 
     // 处理表单提交
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setServerError('');
-        
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault()
+        setServerError('')
+
         if (!validateForm()) {
-            return;
+            return
         }
-        
-        setIsLoading(true);
-        
+
+        setIsLoading(true)
+
         try {
             await register({
                 username: formData.username.trim(),
                 email: formData.email.trim().toLowerCase(),
                 password: formData.password
-            });
-            
+            })
+
             // 注册成功,导航到首页
-            navigate('/');
-        } catch (error) {
-            console.error('注册失败:', error);
+            navigate('/')
+        } catch (error: unknown) {
+            console.error('注册失败:', error)
+            const err = error as { response?: { data?: { message?: string } }; message?: string }
             setServerError(
-                error.response?.data?.message || 
-                error.message || 
+                err.response?.data?.message ||
+                err.message ||
                 '注册失败,请稍后再试'
-            );
+            )
         } finally {
-            setIsLoading(false);
+            setIsLoading(false)
         }
-    };
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-amber-50 via-orange-50 to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -155,8 +163,8 @@ const Register = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* 用户名输入 */}
                         <div>
-                            <label 
-                                htmlFor="username" 
+                            <label
+                                htmlFor="username"
                                 className="block text-sm font-medium text-gray-700 mb-2"
                             >
                                 用户名
@@ -170,8 +178,8 @@ const Register = () => {
                                 onChange={handleChange}
                                 className={`
                                     w-full px-4 py-3 rounded-lg border
-                                    ${errors.username 
-                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                                    ${errors.username
+                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                         : 'border-gray-300 focus:ring-amber-500 focus:border-amber-500'
                                     }
                                     focus:outline-none focus:ring-2
@@ -188,8 +196,8 @@ const Register = () => {
 
                         {/* 邮箱输入 */}
                         <div>
-                            <label 
-                                htmlFor="email" 
+                            <label
+                                htmlFor="email"
                                 className="block text-sm font-medium text-gray-700 mb-2"
                             >
                                 邮箱地址
@@ -203,8 +211,8 @@ const Register = () => {
                                 onChange={handleChange}
                                 className={`
                                     w-full px-4 py-3 rounded-lg border
-                                    ${errors.email 
-                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                                    ${errors.email
+                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                         : 'border-gray-300 focus:ring-amber-500 focus:border-amber-500'
                                     }
                                     focus:outline-none focus:ring-2
@@ -221,8 +229,8 @@ const Register = () => {
 
                         {/* 密码输入 */}
                         <div>
-                            <label 
-                                htmlFor="password" 
+                            <label
+                                htmlFor="password"
                                 className="block text-sm font-medium text-gray-700 mb-2"
                             >
                                 密码
@@ -236,8 +244,8 @@ const Register = () => {
                                 onChange={handleChange}
                                 className={`
                                     w-full px-4 py-3 rounded-lg border
-                                    ${errors.password 
-                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                                    ${errors.password
+                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                         : 'border-gray-300 focus:ring-amber-500 focus:border-amber-500'
                                     }
                                     focus:outline-none focus:ring-2
@@ -254,8 +262,8 @@ const Register = () => {
 
                         {/* 确认密码输入 */}
                         <div>
-                            <label 
-                                htmlFor="confirmPassword" 
+                            <label
+                                htmlFor="confirmPassword"
                                 className="block text-sm font-medium text-gray-700 mb-2"
                             >
                                 确认密码
@@ -269,8 +277,8 @@ const Register = () => {
                                 onChange={handleChange}
                                 className={`
                                     w-full px-4 py-3 rounded-lg border
-                                    ${errors.confirmPassword 
-                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                                    ${errors.confirmPassword
+                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                         : 'border-gray-300 focus:ring-amber-500 focus:border-amber-500'
                                     }
                                     focus:outline-none focus:ring-2
@@ -406,7 +414,7 @@ const Register = () => {
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default Register;
+export default Register

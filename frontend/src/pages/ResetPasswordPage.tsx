@@ -3,67 +3,81 @@
 // 重置密码页面（通过邮件链接进入）
 // ============================================
 
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { resetPassword } from '@services/authAPI';
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { resetPassword } from '@services/authAPI'
+
+interface ResetFormData {
+  password: string
+  confirm: string
+}
+
+interface PasswordStrength {
+  level: number
+  label: string
+  color: string
+}
+
+type ResetStatus = 'idle' | 'loading' | 'success' | 'error'
 
 const ResetPasswordPage = () => {
-    const { token } = useParams();
-    const navigate = useNavigate();
+    const { token } = useParams<{ token: string }>()
+    const navigate = useNavigate()
 
-    const [formData, setFormData] = useState({ password: '', confirm: '' });
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
-    const [status, setStatus] = useState('idle'); // idle | loading | success | error
-    const [errors, setErrors] = useState({});
+    const [formData, setFormData] = useState<ResetFormData>({ password: '', confirm: '' })
+    const [showPassword, setShowPassword] = useState<boolean>(false)
+    const [showConfirm, setShowConfirm] = useState<boolean>(false)
+    const [status, setStatus] = useState<ResetStatus>('idle')
+    const [errors, setErrors] = useState<Record<string, string>>({})
 
     // ============================================
     // 密码强度
     // ============================================
-    const getStrength = (pw) => {
-        if (!pw) return { level: 0, label: '', color: '' };
-        let score = 0;
-        if (pw.length >= 6) score++;
-        if (pw.length >= 10) score++;
-        if (/[A-Z]/.test(pw)) score++;
-        if (/[0-9]/.test(pw)) score++;
-        if (/[^A-Za-z0-9]/.test(pw)) score++;
-        if (score <= 1) return { level: score, label: '弱', color: 'bg-red-400' };
-        if (score <= 3) return { level: score, label: '中', color: 'bg-amber-400' };
-        return { level: score, label: '强', color: 'bg-green-500' };
-    };
+    const getStrength = (pw: string): PasswordStrength => {
+        if (!pw) return { level: 0, label: '', color: '' }
+        let score = 0
+        if (pw.length >= 6) score++
+        if (pw.length >= 10) score++
+        if (/[A-Z]/.test(pw)) score++
+        if (/[0-9]/.test(pw)) score++
+        if (/[^A-Za-z0-9]/.test(pw)) score++
+        if (score <= 1) return { level: score, label: '弱', color: 'bg-red-400' }
+        if (score <= 3) return { level: score, label: '中', color: 'bg-amber-400' }
+        return { level: score, label: '强', color: 'bg-green-500' }
+    }
 
-    const strength = getStrength(formData.password);
+    const strength = getStrength(formData.password)
 
-    const validate = () => {
-        const errs = {};
-        if (!formData.password) errs.password = '请输入新密码';
-        else if (formData.password.length < 6) errs.password = '密码至少 6 个字符';
-        if (!formData.confirm) errs.confirm = '请确认新密码';
-        else if (formData.password !== formData.confirm) errs.confirm = '两次密码不一致';
-        return errs;
-    };
+    const validate = (): Record<string, string> => {
+        const errs: Record<string, string> = {}
+        if (!formData.password) errs.password = '请输入新密码'
+        else if (formData.password.length < 6) errs.password = '密码至少 6 个字符'
+        if (!formData.confirm) errs.confirm = '请确认新密码'
+        else if (formData.password !== formData.confirm) errs.confirm = '两次密码不一致'
+        return errs
+    }
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-    };
+    const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+        if (errors[name as keyof ResetFormData]) setErrors(prev => ({ ...prev, [name]: '' }))
+    }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const errs = validate();
-        if (Object.keys(errs).length) { setErrors(errs); return; }
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault()
+        const errs = validate()
+        if (Object.keys(errs).length) { setErrors(errs); return }
 
         try {
-            setStatus('loading');
-            await resetPassword(token, formData.password);
-            setStatus('success');
-        } catch (error) {
-            setErrors({ submit: error.message || '重置失败，链接可能已过期' });
-            setStatus('error');
+            setStatus('loading')
+            await resetPassword(token!, formData.password)
+            setStatus('success')
+        } catch (error: unknown) {
+            const err = error as { message?: string }
+            setErrors({ submit: err.message || '重置失败，链接可能已过期' })
+            setStatus('error')
         }
-    };
+    }
 
     // ============================================
     // 渲染
@@ -240,7 +254,7 @@ const ResetPasswordPage = () => {
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default ResetPasswordPage;
+export default ResetPasswordPage

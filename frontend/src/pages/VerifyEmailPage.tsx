@@ -4,62 +4,68 @@
 // 也处理已登录用户重发验证邮件的操作
 // ============================================
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { get } from '@services/api';
-import { resendVerificationEmail } from '@services/authAPI';
-import { useAuth } from '@contexts/AuthContext';
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { get } from '@services/api'
+import { resendVerificationEmail } from '@services/authAPI'
+import { useAuth } from '@contexts/AuthContext'
+
+type VerifyStatus = 'verifying' | 'success' | 'error'
+type ResendStatus = 'idle' | 'loading' | 'sent' | 'error'
 
 const VerifyEmailPage = () => {
-    const { token } = useParams();
-    const navigate = useNavigate();
-    const { isLoggedIn, refreshUser } = useAuth();
+    const { token } = useParams<{ token: string }>()
+    const navigate = useNavigate()
+    const { isLoggedIn, refreshUser } = useAuth()
 
-    const [status, setStatus] = useState('verifying'); // verifying | success | error
-    const [errorMsg, setErrorMsg] = useState('');
-    const [resendStatus, setResendStatus] = useState('idle'); // idle | loading | sent | error
-    const [resendError, setResendError] = useState('');
+    const [status, setStatus] = useState<VerifyStatus>('verifying')
+    const [errorMsg, setErrorMsg] = useState<string>('')
+    const [resendStatus, setResendStatus] = useState<ResendStatus>('idle')
+    const [resendError, setResendError] = useState<string>('')
 
     // ============================================
     // 自动验证 token
     // ============================================
     useEffect(() => {
+        if (!token) return
         const verify = async () => {
             try {
-                await get(`/auth/verify-email/${token}`);
-                setStatus('success');
+                await get(`/auth/verify-email/${token}`)
+                setStatus('success')
                 // 刷新用户信息以更新 isEmailVerified 状态
                 if (isLoggedIn) {
-                    await refreshUser();
+                    await refreshUser()
                 }
-            } catch (error) {
-                setErrorMsg(error.message || '验证链接无效或已过期');
-                setStatus('error');
+            } catch (error: unknown) {
+                const err = error as { message?: string }
+                setErrorMsg(err.message || '验证链接无效或已过期')
+                setStatus('error')
             }
-        };
+        }
 
-        verify();
-    }, [token]);
+        verify()
+    }, [token])
 
     // ============================================
     // 重新发送验证邮件
     // ============================================
-    const handleResend = async () => {
+    const handleResend = async (): Promise<void> => {
         if (!isLoggedIn) {
-            navigate('/login?redirect=/profile');
-            return;
+            navigate('/login?redirect=/profile')
+            return
         }
 
         try {
-            setResendStatus('loading');
-            setResendError('');
-            await resendVerificationEmail();
-            setResendStatus('sent');
-        } catch (error) {
-            setResendError(error.message || '发送失败，请稍后重试');
-            setResendStatus('error');
+            setResendStatus('loading')
+            setResendError('')
+            await resendVerificationEmail()
+            setResendStatus('sent')
+        } catch (error: unknown) {
+            const err = error as { message?: string }
+            setResendError(err.message || '发送失败，请稍后重试')
+            setResendStatus('error')
         }
-    };
+    }
 
     // ============================================
     // 渲染
@@ -180,7 +186,7 @@ const VerifyEmailPage = () => {
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default VerifyEmailPage;
+export default VerifyEmailPage

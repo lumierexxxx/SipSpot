@@ -3,35 +3,37 @@
 // 登录页面
 // ============================================
 
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@contexts/AuthContext';
-import { validateLoginData } from '@services/authAPI';
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@contexts/AuthContext'
+import { validateLoginData } from '@services/authAPI'
+
+interface LoginFormData {
+  identifier: string
+  password: string
+}
 
 const Login = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { login } = useAuth();
 
-    const [formData, setFormData] = useState({
-        identifier: '',
-        password: ''
-    });
+    const [formData, setFormData] = useState<LoginFormData>({ identifier: '', password: '' });
 
-    const [errors, setErrors] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [loading, setLoading] = useState<boolean>(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
 
     // 获取重定向URL
-    const redirectUrl = searchParams.get('redirect') || '/';
-    const expired = searchParams.get('expired');
+    const redirectUrl: string = searchParams.get('redirect') || '/';
+    const expired: string | null = searchParams.get('expired');
 
     // ============================================
     // 处理输入变化
     // ============================================
-    const handleChange = (e) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name as keyof LoginFormData]: value }));
         
         // 清除对应字段的错误
         if (errors[name]) {
@@ -42,11 +44,11 @@ const Login = () => {
     // ============================================
     // 处理提交
     // ============================================
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
 
         // 前端验证
-        const validation = validateLoginData(formData);
+        const validation = validateLoginData(formData as unknown as Record<string, string>);
         if (!validation.isValid) {
             setErrors(validation.errors);
             return;
@@ -56,7 +58,7 @@ const Login = () => {
             setLoading(true);
             setErrors({});
 
-            const result = await login(formData);
+            const result = await login(formData as unknown as Record<string, string>);
 
             if (result.success) {
                 // 登录成功，跳转
@@ -65,7 +67,7 @@ const Login = () => {
                 setErrors({ submit: result.message || '登录失败' });
             }
         } catch (error) {
-            setErrors({ submit: error.message || '登录失败，请重试' });
+            setErrors({ submit: (error as Error).message || '登录失败，请重试' });
         } finally {
             setLoading(false);
         }
