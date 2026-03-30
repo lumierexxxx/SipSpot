@@ -3,7 +3,7 @@
 // 评论列表组件
 // ============================================
 
-import React from 'react'
+import type { JSX } from 'react'
 import { useAuth } from '@contexts/AuthContext'
 import type { IReview } from '@/types'
 import type { IUser } from '@/types'
@@ -45,7 +45,7 @@ const ReviewList = ({
   // ============================================
   // 渲染星星评分
   // ============================================
-  const renderStars = (rating: number): React.JSX.Element => {
+  const renderStars = (rating: number): JSX.Element => {
     const fullStars = Math.floor(rating)
     const hasHalfStar = rating % 1 >= 0.5
 
