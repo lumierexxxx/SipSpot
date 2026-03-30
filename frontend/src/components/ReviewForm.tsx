@@ -3,7 +3,7 @@
 // 评论表单组件
 // ============================================
 
-import { useState } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useAuth } from '@contexts/AuthContext'
 import type { IReview } from '@/types'
 
@@ -98,7 +98,7 @@ const ReviewForm = ({
   // ============================================
   // 处理输入变化
   // ============================================
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     if (errors[name]) {
@@ -109,7 +109,7 @@ const ReviewForm = ({
   // ============================================
   // 处理图片上传
   // ============================================
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const files = Array.from(e.target.files ?? [])
 
     if (files.length + images.length + imagePreviews.length > 5) {
@@ -166,7 +166,7 @@ const ReviewForm = ({
   // ============================================
   // 处理提交
   // ============================================
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
 
     if (!validateForm()) return
