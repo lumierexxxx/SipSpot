@@ -3,32 +3,35 @@
 // 忘记密码页面
 // ============================================
 
-import React, { useState } from 'react';
-import { forgotPassword } from '@services/authAPI';
+import { useState, type FormEvent } from 'react'
+import { forgotPassword } from '@services/authAPI'
+
+type ForgotStatus = 'idle' | 'loading' | 'success' | 'error'
 
 const ForgotPasswordPage = () => {
-    const [email, setEmail] = useState('');
-    const [status, setStatus] = useState('idle'); // idle | loading | success | error
-    const [errorMsg, setErrorMsg] = useState('');
+    const [email, setEmail] = useState<string>('')
+    const [status, setStatus] = useState<ForgotStatus>('idle')
+    const [errorMsg, setErrorMsg] = useState<string>('')
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault()
 
         if (!email.trim()) {
-            setErrorMsg('请输入邮箱地址');
-            return;
+            setErrorMsg('请输入邮箱地址')
+            return
         }
 
         try {
-            setStatus('loading');
-            setErrorMsg('');
-            await forgotPassword(email.trim());
-            setStatus('success');
-        } catch (error) {
-            setErrorMsg(error.message || '发送失败，请稍后重试');
-            setStatus('error');
+            setStatus('loading')
+            setErrorMsg('')
+            await forgotPassword(email.trim())
+            setStatus('success')
+        } catch (error: unknown) {
+            const err = error as { message?: string }
+            setErrorMsg(err.message || '发送失败，请稍后重试')
+            setStatus('error')
         }
-    };
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -59,7 +62,7 @@ const ForgotPasswordPage = () => {
                             </p>
                             <p className="text-sm text-gray-500 mb-6">链接将在 10 分钟后失效，请尽快操作。</p>
                             <button
-                                onClick={() => { setStatus('idle'); setEmail(''); }}
+                                onClick={() => { setStatus('idle'); setEmail('') }}
                                 className="text-sm text-amber-600 hover:text-amber-700 font-medium"
                             >
                                 重新发送
@@ -79,8 +82,8 @@ const ForgotPasswordPage = () => {
                                     required
                                     value={email}
                                     onChange={(e) => {
-                                        setEmail(e.target.value);
-                                        setErrorMsg('');
+                                        setEmail(e.target.value)
+                                        setErrorMsg('')
                                     }}
                                     className={`input ${errorMsg ? 'input-error' : ''}`}
                                     placeholder="your@email.com"
@@ -122,7 +125,7 @@ const ForgotPasswordPage = () => {
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default ForgotPasswordPage;
+export default ForgotPasswordPage
