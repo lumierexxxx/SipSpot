@@ -11,7 +11,6 @@ import { validateLoginData } from '@services/authAPI'
 interface LoginFormData {
   identifier: string
   password: string
-  [key: string]: string
 }
 
 const Login = () => {
@@ -34,7 +33,7 @@ const Login = () => {
     // ============================================
     const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name as keyof LoginFormData]: value }));
         
         // 清除对应字段的错误
         if (errors[name]) {
@@ -49,7 +48,7 @@ const Login = () => {
         e.preventDefault();
 
         // 前端验证
-        const validation = validateLoginData(formData);
+        const validation = validateLoginData(formData as unknown as Record<string, string>);
         if (!validation.isValid) {
             setErrors(validation.errors);
             return;
@@ -59,7 +58,7 @@ const Login = () => {
             setLoading(true);
             setErrors({});
 
-            const result = await login(formData);
+            const result = await login(formData as unknown as Record<string, string>);
 
             if (result.success) {
                 // 登录成功，跳转
