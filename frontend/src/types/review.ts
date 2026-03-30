@@ -30,6 +30,17 @@ export interface IReview {
     content: string
     respondedAt: string
   }
+  detailedRatings?: {
+    coffee?: number
+    ambience?: number
+    service?: number
+    value?: number
+  }
+  helpfulVotes?: Array<{ user: string; vote: 'helpful' | 'not-helpful' }>
+  helpfulCount?: number
+  isEdited?: boolean
+  isVerifiedVisit?: boolean
+  visitDate?: string
   createdAt: string
   updatedAt: string
 }
