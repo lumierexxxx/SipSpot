@@ -23,6 +23,7 @@ export interface IReview {
     sentiment?: 'positive' | 'negative' | 'neutral'
     keywords?: string[]
     summary?: string
+    confidence?: number
   }
   helpful: string[]
   isReported: boolean
