@@ -3,8 +3,22 @@
 // 咖啡店列表组件
 // ============================================
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import CafeCard from './CafeCard';
+import type { ICafe } from '@/types';
+
+interface CafeListProps {
+    cafes?: ICafe[]
+    loading?: boolean
+    error?: { message?: string } | null
+    onFavoriteToggle?: (id: string, state: boolean) => void
+    showDistance?: boolean
+    getDistance?: ((cafe: ICafe) => number | null) | null
+    showViewToggle?: boolean
+    onLoadMore?: (() => void) | null
+    hasMore?: boolean
+    emptyMessage?: string
+}
 
 /**
  * CafeList 组件
@@ -30,10 +44,10 @@ const CafeList = ({
     onLoadMore = null,
     hasMore = false,
     emptyMessage = '暂无咖啡店'
-}) => {
+}: CafeListProps) => {
     // 视图模式：grid（网格）或 list（列表）
-    const [viewMode, setViewMode] = useState('grid');
-    
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
     // ============================================
     // 加载状态
     // ============================================
@@ -206,15 +220,15 @@ const CafeList = ({
             >
                 {cafes.map((cafe) => {
                     const distance = getDistance ? getDistance(cafe) : null;
-                    
+
                     return (
                         <CafeCard
-                            key={cafe._id || cafe.id}
+                            key={cafe._id || (cafe as ICafe & { id?: string }).id}
                             cafe={cafe}
                             onFavoriteToggle={onFavoriteToggle}
                             showDistance={showDistance}
                             distance={distance}
-                            className={viewMode === 'list' ? 'flex' : ''}
+                            view={viewMode}
                         />
                     );
                 })}
