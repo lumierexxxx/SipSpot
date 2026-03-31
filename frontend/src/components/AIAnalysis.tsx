@@ -3,41 +3,52 @@
 // AI 分析结果展示组件
 // ============================================
 
-import React from 'react';
+import type { IReview } from '@/types'
+
+type SentimentKey = 'positive' | 'negative' | 'neutral'
+
+interface ReviewAIAnalysisProps {
+    analysis: IReview['aiAnalysis']
+    compact?: boolean
+}
+
+interface CafeSentimentStatsProps {
+    stats: { positive: number; negative: number; neutral: number } | null
+}
+
+interface AIBadgeProps {
+    sentiment: SentimentKey
+    showLabel?: boolean
+}
+
+// AILoadingState — no props, no interface needed
+
+interface AIErrorStateProps {
+    onRetry?: () => void
+}
+
+interface AIFeaturePromoProps {
+    onAnalyze?: () => void
+}
 
 /**
  * AIAnalysis 组件 - 显示单条评论的AI分析
  * @param {Object} analysis - AI分析数据
  * @param {boolean} compact - 紧凑模式
  */
-export const ReviewAIAnalysis = ({ analysis, compact = false }) => {
+export const ReviewAIAnalysis = ({ analysis, compact = false }: ReviewAIAnalysisProps) => {
     if (!analysis) return null;
 
     const { sentiment, keywords = [], summary, confidence } = analysis;
 
     // 情感图标和颜色
-    const sentimentConfig = {
-        positive: {
-            icon: '😊',
-            color: 'text-green-600',
-            bg: 'bg-green-50',
-            label: '正面'
-        },
-        negative: {
-            icon: '😞',
-            color: 'text-red-600',
-            bg: 'bg-red-50',
-            label: '负面'
-        },
-        neutral: {
-            icon: '😐',
-            color: 'text-gray-600',
-            bg: 'bg-gray-50',
-            label: '中性'
-        }
+    const sentimentConfig: Record<SentimentKey, { icon: string; color: string; bg: string; label: string }> = {
+        positive: { icon: '😊', color: 'text-green-600', bg: 'bg-green-50', label: '正面' },
+        negative: { icon: '😞', color: 'text-red-600',   bg: 'bg-red-50',   label: '负面' },
+        neutral:  { icon: '😐', color: 'text-gray-600',  bg: 'bg-gray-50',  label: '中性' },
     };
 
-    const config = sentimentConfig[sentiment] || sentimentConfig.neutral;
+    const config = sentimentConfig[sentiment ?? 'neutral'];
 
     if (compact) {
         return (
@@ -68,7 +79,7 @@ export const ReviewAIAnalysis = ({ analysis, compact = false }) => {
                             {config.label}情感
                         </span>
                     </div>
-                    
+
                     {summary && (
                         <p className="text-sm text-gray-700 mb-3">
                             {summary}
@@ -114,7 +125,7 @@ export const ReviewAIAnalysis = ({ analysis, compact = false }) => {
  * CafeSentimentStats 组件 - 显示咖啡店整体情感统计
  * @param {Object} stats - 情感统计数据
  */
-export const CafeSentimentStats = ({ stats }) => {
+export const CafeSentimentStats = ({ stats }: CafeSentimentStatsProps) => {
     if (!stats) return null;
 
     const { positive = 0, negative = 0, neutral = 0 } = stats;
@@ -218,14 +229,14 @@ export const CafeSentimentStats = ({ stats }) => {
  * @param {string} sentiment - 情感类型
  * @param {boolean} showLabel - 是否显示标签
  */
-export const AIBadge = ({ sentiment, showLabel = true }) => {
-    const config = {
+export const AIBadge = ({ sentiment, showLabel = true }: AIBadgeProps) => {
+    const config: Record<SentimentKey, { icon: string; label: string; color: string }> = {
         positive: { icon: '😊', label: '正面', color: 'bg-green-100 text-green-700' },
         negative: { icon: '😞', label: '负面', color: 'bg-red-100 text-red-700' },
-        neutral: { icon: '😐', label: '中性', color: 'bg-gray-100 text-gray-700' }
+        neutral:  { icon: '😐', label: '中性', color: 'bg-gray-100 text-gray-700' },
     };
 
-    const { icon, label, color } = config[sentiment] || config.neutral;
+    const { icon, label, color } = config[sentiment];
 
     return (
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
@@ -261,7 +272,7 @@ export const AILoadingState = () => {
  * AIErrorState 组件 - AI分析错误状态
  * @param {Function} onRetry - 重试回调
  */
-export const AIErrorState = ({ onRetry }) => {
+export const AIErrorState = ({ onRetry }: AIErrorStateProps) => {
     return (
         <div className="bg-red-50 rounded-lg p-6 text-center">
             <span className="text-4xl mb-2 block">😕</span>
@@ -283,7 +294,7 @@ export const AIErrorState = ({ onRetry }) => {
 /**
  * AIFeaturePromo 组件 - AI功能推广（当没有分析时）
  */
-export const AIFeaturePromo = ({ onAnalyze }) => {
+export const AIFeaturePromo = ({ onAnalyze }: AIFeaturePromoProps) => {
     return (
         <div className="bg-linear-to-r from-purple-50 to-pink-50 rounded-lg p-6 text-center">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
