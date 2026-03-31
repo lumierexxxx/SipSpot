@@ -14,19 +14,19 @@ const LANGUAGES = [
 export default function LangSelect() {
     const { i18n } = useTranslation();
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
 
     const current = LANGUAGES.find(l => l.value === i18n.language) ?? LANGUAGES[0];
 
-    const handleSelect = (lang) => {
+    const handleSelect = (lang: string): void => {
         i18n.changeLanguage(lang);
         localStorage.setItem('sipspot_lang', lang);
         setOpen(false);
     };
 
     useEffect(() => {
-        const onClickOutside = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        const onClickOutside = (e: MouseEvent): void => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
         };
         document.addEventListener('mousedown', onClickOutside);
         return () => document.removeEventListener('mousedown', onClickOutside);
