@@ -223,7 +223,7 @@ const CafeList = ({
 
                     return (
                         <CafeCard
-                            key={cafe._id || (cafe as ICafe & { id?: string }).id}
+                            key={cafe._id}
                             cafe={cafe}
                             onFavoriteToggle={onFavoriteToggle}
                             showDistance={showDistance}
