@@ -3,18 +3,45 @@
 // 创建咖啡店页面
 // ============================================
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { createCafe } from '../services/cafesAPI';
+import { useState, useEffect, Fragment, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@contexts/AuthContext'
+import { createCafe } from '@services/cafesAPI'
+
+// ============================================
+// 接口定义
+// ============================================
+interface OpeningHourForm {
+  day: string
+  open: string
+  close: string
+  closed: boolean
+}
+
+interface CafeFormData {
+  name: string
+  description: string
+  address: string
+  city: string
+  price: number
+  specialty: string
+  phoneNumber: string
+  website: string
+  amenities: string[]
+  openingHours: OpeningHourForm[]
+}
+
+interface LocationData {
+  lat: string
+  lng: string
+}
 
 const CreateCafePage = () => {
-    const navigate = useNavigate();
-    const { isLoggedIn } = useAuth();
-
+    const navigate = useNavigate()
+    const { isLoggedIn } = useAuth()
 
     // 表单数据
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<CafeFormData>({
         name: '',
         description: '',
         address: '',
@@ -33,23 +60,20 @@ const CreateCafePage = () => {
             { day: 'Saturday', open: '09:00', close: '21:00', closed: false },
             { day: 'Sunday', open: '09:00', close: '21:00', closed: false }
         ]
-    });
+    })
 
     // 地理位置数据
-    const [location, setLocation] = useState({
-        lat: '',
-        lng: ''
-    });
+    const [location, setLocation] = useState<LocationData>({ lat: '', lng: '' })
 
     // 图片文件
-    const [images, setImages] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
+    const [images, setImages] = useState<File[]>([])
+    const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
     // UI状态
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [errors, setErrors] = useState({});
-    const [currentStep, setCurrentStep] = useState(1); // 1: 基本信息, 2: 详细信息, 3: 营业时间
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<string>('')
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
 
     // 可用选项
     const amenityOptions = [
@@ -57,144 +81,146 @@ const CreateCafePage = () => {
         'Pet Friendly', 'Non-Smoking', 'Air Conditioning',
         'Parking Available', 'Wheelchair Accessible',
         'Laptop Friendly', 'Good for Groups', 'Good for Work'
-    ];
+    ]
 
     const specialtyOptions = [
         'Espresso', 'Pour Over', 'Cold Brew', 'Latte Art',
         'Specialty Beans', 'Desserts', 'Light Meals'
-    ];
+    ]
 
     // ============================================
     // 如果未登录，重定向到登录页
     // ============================================
     useEffect(() => {
         if (!isLoggedIn) {
-            navigate('/login');
+            navigate('/login')
         }
-    }, [isLoggedIn, navigate]);
+    }, [isLoggedIn, navigate])
 
     // ============================================
     // 处理表单变化
     // ============================================
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>): void => {
+        const { name, value } = e.target
         setFormData(prev => ({
             ...prev,
             [name]: value
-        }));
+        }))
         // 清除该字段的错误
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            setErrors(prev => ({ ...prev, [name]: '' }))
         }
-        setError('');
-    };
+        setError('')
+    }
 
-    const handleLocationChange = (e) => {
-        const { name, value } = e.target;
+    const handleLocationChange = (e: ChangeEvent<HTMLInputElement>): void => {
+        const { name, value } = e.target
         setLocation(prev => ({
             ...prev,
             [name]: value
-        }));
-    };
+        }))
+    }
 
-    const handleAmenityToggle = (amenity) => {
+    const handleAmenityToggle = (amenity: string): void => {
         setFormData(prev => ({
             ...prev,
             amenities: prev.amenities.includes(amenity)
                 ? prev.amenities.filter(a => a !== amenity)
                 : [...prev.amenities, amenity]
-        }));
-    };
+        }))
+    }
 
-    const handleHoursChange = (index, field, value) => {
+    const handleHoursChange = (index: number, field: keyof OpeningHourForm, value: string | boolean): void => {
         setFormData(prev => ({
             ...prev,
             openingHours: prev.openingHours.map((hour, i) =>
                 i === index ? { ...hour, [field]: value } : hour
             )
-        }));
-    };
+        }))
+    }
 
     // ============================================
     // 处理图片上传
     // ============================================
-    const handleImageChange = (e) => {
-        const files = Array.from(e.target.files);
-        
+    const handleImageChange = (e: ChangeEvent<HTMLInputElement>): void => {
+        const files = Array.from(e.target.files ?? [])
+
         if (files.length + images.length > 10) {
-            setError('最多只能上传10张图片');
-            return;
+            setError('最多只能上传10张图片')
+            return
         }
 
-        setImages(prev => [...prev, ...files]);
+        setImages(prev => [...prev, ...files])
 
         // 生成预览
         files.forEach(file => {
-            const reader = new FileReader();
+            const reader = new FileReader()
             reader.onloadend = () => {
-                setImagePreviews(prev => [...prev, reader.result]);
-            };
-            reader.readAsDataURL(file);
-        });
-    };
+                if (typeof reader.result === 'string') {
+                    setImagePreviews(prev => [...prev, reader.result as string])
+                }
+            }
+            reader.readAsDataURL(file)
+        })
+    }
 
-    const removeImage = (index) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    };
+    const removeImage = (index: number): void => {
+        setImages(prev => prev.filter((_, i) => i !== index))
+        setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    }
 
     // ============================================
     // 获取当前位置
     // ============================================
-    const handleGetCurrentLocation = () => {
+    const handleGetCurrentLocation = (): void => {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     setLocation({
                         lat: position.coords.latitude.toString(),
                         lng: position.coords.longitude.toString()
-                    });
+                    })
                 },
-                (error) => {
-                    setError('无法获取位置: ' + error.message);
+                (err) => {
+                    setError('无法获取位置: ' + err.message)
                 }
-            );
+            )
         } else {
-            setError('您的浏览器不支持地理定位');
+            setError('您的浏览器不支持地理定位')
         }
-    };
+    }
 
     // ============================================
     // 表单验证
     // ============================================
-    const validateForm = () => {
-        const newErrors = {};
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {}
 
-        if (!formData.name.trim()) newErrors.name = '请输入咖啡店名称';
-        if (!formData.description.trim()) newErrors.description = '请输入描述';
-        if (formData.description.length < 10) newErrors.description = '描述至少10个字符';
-        if (!formData.address.trim()) newErrors.address = '请输入地址';
-        if (!formData.city.trim()) newErrors.city = '请输入城市';
-        if (!location.lat || !location.lng) newErrors.location = '请提供地理坐标';
+        if (!formData.name.trim()) newErrors.name = '请输入咖啡店名称'
+        if (!formData.description.trim()) newErrors.description = '请输入描述'
+        if (formData.description.length < 10) newErrors.description = '描述至少10个字符'
+        if (!formData.address.trim()) newErrors.address = '请输入地址'
+        if (!formData.city.trim()) newErrors.city = '请输入城市'
+        if (!location.lat || !location.lng) newErrors.location = '请提供地理坐标'
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
 
     // ============================================
     // 提交表单
     // ============================================
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault()
 
         if (!validateForm()) {
-            setError('请检查表单中的错误');
-            return;
+            setError('请检查表单中的错误')
+            return
         }
 
         try {
-            setLoading(true);
-            setError('');
+            setLoading(true)
+            setError('')
 
             // 构建提交数据
             const cafeData = {
@@ -203,21 +229,24 @@ const CreateCafePage = () => {
                     type: 'Point',
                     coordinates: [parseFloat(location.lng), parseFloat(location.lat)]
                 }
-            };
+            }
 
             // 创建咖啡店
-            const response = await createCafe(cafeData, images);
+            const response = await createCafe(cafeData, images)
 
             // 成功后导航到详情页
-            navigate(`/cafes/${response.data._id || response.data.id}`);
+            if (response.data?._id) {
+                navigate(`/cafes/${response.data._id}`)
+            }
 
-        } catch (err) {
-            console.error('Create cafe failed:', err);
-            setError(err.response?.data?.message || '创建失败，请稍后再试');
+        } catch (err: unknown) {
+            console.error('Create cafe failed:', err)
+            const apiErr = err as { response?: { data?: { message?: string } } }
+            setError(apiErr.response?.data?.message || '创建失败，请稍后再试')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     // ============================================
     // 渲染步骤
@@ -225,7 +254,7 @@ const CreateCafePage = () => {
     const renderStepIndicator = () => (
         <div className="flex items-center justify-center mb-8">
             {[1, 2, 3].map(step => (
-                <React.Fragment key={step}>
+                <Fragment key={step}>
                     <div
                         className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
                             currentStep >= step
@@ -242,10 +271,10 @@ const CreateCafePage = () => {
                             }`}
                         />
                     )}
-                </React.Fragment>
+                </Fragment>
             ))}
         </div>
-    );
+    )
 
     const renderStep1 = () => (
         <div className="space-y-6">
@@ -278,8 +307,8 @@ const CreateCafePage = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    rows="5"
-                    maxLength="2000"
+                    rows={5}
+                    maxLength={2000}
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                         errors.description ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -341,7 +370,7 @@ const CreateCafePage = () => {
                 )}
             </div>
         </div>
-    );
+    )
 
     const renderStep2 = () => (
         <div className="space-y-6">
@@ -518,7 +547,7 @@ const CreateCafePage = () => {
                 </div>
             </div>
         </div>
-    );
+    )
 
     const renderStep3 = () => (
         <div className="space-y-6">
@@ -562,7 +591,7 @@ const CreateCafePage = () => {
                 ))}
             </div>
         </div>
-    );
+    )
 
     // ============================================
     // 主内容渲染
@@ -608,9 +637,9 @@ const CreateCafePage = () => {
                             type="button"
                             onClick={() => {
                                 if (currentStep === 1) {
-                                    navigate(-1);
+                                    navigate(-1)
                                 } else {
-                                    setCurrentStep(prev => prev - 1);
+                                    setCurrentStep(prev => (prev - 1) as 1 | 2 | 3)
                                 }
                             }}
                             className="btn btn-ghost"
@@ -621,7 +650,7 @@ const CreateCafePage = () => {
                         {currentStep < 3 ? (
                             <button
                                 type="button"
-                                onClick={() => setCurrentStep(prev => prev + 1)}
+                                onClick={() => setCurrentStep(prev => (prev + 1) as 1 | 2 | 3)}
                                 className="btn btn-primary"
                             >
                                 下一步
@@ -639,7 +668,7 @@ const CreateCafePage = () => {
                 </form>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default CreateCafePage;
+export default CreateCafePage
