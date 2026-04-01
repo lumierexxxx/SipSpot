@@ -3,35 +3,35 @@
 // 收藏列表页面
 // ============================================
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import CafeCard from '../components/CafeCard';
-import { getUserFavorites } from '../services/usersAPI';
-import { toggleFavorite } from '../services/usersAPI';
+import { useState, useEffect, type ChangeEvent } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '@contexts/AuthContext'
+import CafeCard from '@components/CafeCard'
+import { getUserFavorites, removeFromFavorites } from '@services/usersAPI'
+import type { ICafe } from '@/types'
 
 const FavoritesPage = () => {
-    const navigate = useNavigate();
-    const { isLoggedIn } = useAuth();
+    const navigate = useNavigate()
+    const { isLoggedIn } = useAuth()
 
 
     // 数据状态
-    const [favorites, setFavorites] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [favorites, setFavorites] = useState<ICafe[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
+    const [error, setError] = useState<string | null>(null)
 
     // 排序和过滤
-    const [sortBy, setSortBy] = useState('recent'); // recent, rating, name
-    const [filterCity, setFilterCity] = useState('');
+    const [sortBy, setSortBy] = useState<'recent' | 'rating' | 'name'>('recent')
+    const [filterCity, setFilterCity] = useState<string>('')
 
     // ============================================
     // 如果未登录，重定向到登录页
     // ============================================
     useEffect(() => {
         if (!isLoggedIn) {
-            navigate('/login');
+            navigate('/login')
         }
-    }, [isLoggedIn, navigate]);
+    }, [isLoggedIn, navigate])
 
 
 
@@ -40,81 +40,80 @@ const FavoritesPage = () => {
     // 加载收藏列表
     // ============================================
     useEffect(() => {
-        loadFavorites();
-    }, []);
+        loadFavorites()
+    }, [])
 
-    const loadFavorites = async () => {
+    const loadFavorites = async (): Promise<void> => {
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
-            const response = await getUserFavorites();
-            setFavorites(response.data || []);
+            const response = await getUserFavorites()
+            setFavorites(response.data || [])
 
-        } catch (err) {
-            console.error('Failed to load favorites:', err);
-            setError(err.response?.data?.message || '加载失败');
+        } catch (err: unknown) {
+            console.error('Failed to load favorites:', err)
+            const e = err as { response?: { data?: { message?: string } } }
+            setError(e.response?.data?.message || '加载失败')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     // ============================================
     // 处理取消收藏
     // ============================================
-    const handleUnfavorite = async (cafeId) => {
+    const handleUnfavorite = async (cafeId: string): Promise<void> => {
         if (!window.confirm('确定要取消收藏这家咖啡店吗？')) {
-            return;
+            return
         }
 
         try {
-            await removeFromFavorites(cafeId); // true表示当前已收藏，要取消
-            
+            await removeFromFavorites(cafeId) // true表示当前已收藏，要取消
+
             // 从列表中移除
-            setFavorites(prev => prev.filter(cafe => 
-                (cafe._id || cafe.id) !== cafeId
-            ));
+            setFavorites(prev => prev.filter(cafe => cafe._id !== cafeId))
 
         } catch (err) {
-            console.error('Failed to unfavorite:', err);
-            alert('操作失败，请重试');
+            console.error('Failed to unfavorite:', err)
+            alert('操作失败，请重试')
         }
-    };
+    }
 
     // ============================================
     // 排序和过滤
     // ============================================
-    const getFilteredAndSortedFavorites = () => {
-        let filtered = [...favorites];
+    const getFilteredAndSortedFavorites = (): ICafe[] => {
+        let filtered = [...favorites]
 
         // 城市过滤
         if (filterCity) {
-            filtered = filtered.filter(cafe => 
+            filtered = filtered.filter(cafe =>
                 cafe.city && cafe.city.toLowerCase().includes(filterCity.toLowerCase())
-            );
+            )
         }
 
         // 排序
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'rating':
-                    return (b.rating || 0) - (a.rating || 0);
+                    return (b.rating || 0) - (a.rating || 0)
                 case 'name':
-                    return (a.name || '').localeCompare(b.name || '');
+                    return (a.name || '').localeCompare(b.name || '')
                 case 'recent':
                 default:
                     // 假设按添加到收藏的顺序（实际需要后端支持）
-                    return 0;
+                    return 0
             }
-        });
+        })
 
-        return filtered;
-    };
+        return filtered
+    }
 
-    const displayedFavorites = getFilteredAndSortedFavorites();
+    const displayedFavorites = getFilteredAndSortedFavorites()
 
     // 获取所有城市用于过滤
-    const cities = [...new Set(favorites.map(cafe => cafe.city).filter(Boolean))];
+    const cities = [...new Set(favorites.map(cafe => cafe.city).filter(Boolean))]
 
     // ============================================
     // 加载状态
@@ -127,7 +126,7 @@ const FavoritesPage = () => {
                     <p className="text-gray-600">加载中...</p>
                 </div>
             </div>
-        );
+        )
     }
 
     // ============================================
@@ -149,7 +148,7 @@ const FavoritesPage = () => {
                     </button>
                 </div>
             </div>
-        );
+        )
     }
 
     // ============================================
@@ -164,7 +163,7 @@ const FavoritesPage = () => {
                         我的收藏
                     </h1>
                     <p className="text-gray-600">
-                        {favorites.length > 0 
+                        {favorites.length > 0
                             ? `你收藏了 ${favorites.length} 家咖啡店`
                             : '还没有收藏任何咖啡店'
                         }
@@ -214,7 +213,7 @@ const FavoritesPage = () => {
                                         </label>
                                         <select
                                             value={filterCity}
-                                            onChange={(e) => setFilterCity(e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterCity(e.target.value)}
                                             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                         >
                                             <option value="">全部城市</option>
@@ -232,7 +231,7 @@ const FavoritesPage = () => {
                                     </label>
                                     <select
                                         value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as 'recent' | 'rating' | 'name')}
                                         className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                     >
                                         <option value="recent">最近添加</option>
@@ -252,12 +251,12 @@ const FavoritesPage = () => {
                         {displayedFavorites.length > 0 ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {displayedFavorites.map(cafe => (
-                                    <div key={cafe._id || cafe.id} className="relative group">
+                                    <div key={cafe._id} className="relative group">
                                         <CafeCard cafe={cafe} />
-                                        
+
                                         {/* 取消收藏按钮 */}
                                         <button
-                                            onClick={() => handleUnfavorite(cafe._id || cafe.id)}
+                                            onClick={() => handleUnfavorite(cafe._id)}
                                             className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
                                             title="取消收藏"
                                         >
@@ -279,8 +278,8 @@ const FavoritesPage = () => {
                                 </p>
                                 <button
                                     onClick={() => {
-                                        setFilterCity('');
-                                        setSortBy('recent');
+                                        setFilterCity('')
+                                        setSortBy('recent')
                                     }}
                                     className="btn btn-primary"
                                 >
@@ -313,7 +312,7 @@ const FavoritesPage = () => {
                 )}
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default FavoritesPage;
+export default FavoritesPage
