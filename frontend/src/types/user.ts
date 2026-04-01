@@ -22,6 +22,9 @@ export interface IUser {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  reviewCount?: number
+  cafeCount?: number
+  lastLogin?: string
 }
 
 export interface IUserPreferences {
