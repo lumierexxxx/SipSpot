@@ -8,8 +8,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
 import { getCurrentUser, updateProfile, updatePassword } from '@services/authAPI'
 import CafeCard from '@components/CafeCard'
-import type { IUser } from '@/types'
-import type { ICafe } from '@/types'
+import type { IUser, ICafe } from '@/types'
 
 // ============================================
 // Local form interfaces

@@ -3,7 +3,7 @@
 // 收藏列表页面
 // ============================================
 
-import { useState, useEffect, type ChangeEvent } from 'react'
+import { useState, useEffect, useCallback, type ChangeEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
 import CafeCard from '@components/CafeCard'
@@ -39,11 +39,7 @@ const FavoritesPage = () => {
     // ============================================
     // 加载收藏列表
     // ============================================
-    useEffect(() => {
-        loadFavorites()
-    }, [])
-
-    const loadFavorites = async (): Promise<void> => {
+    const loadFavorites = useCallback(async (): Promise<void> => {
         try {
             setLoading(true)
             setError(null)
@@ -58,7 +54,11 @@ const FavoritesPage = () => {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        loadFavorites()
+    }, [loadFavorites])
 
     // ============================================
     // 处理取消收藏

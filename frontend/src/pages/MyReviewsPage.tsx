@@ -8,8 +8,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
 import { getUserReviews } from '@services/authAPI'
 import { deleteReview } from '@services/cafesAPI'
-import type { IReview } from '@/types'
-import type { ICafe } from '@/types'
+import type { IReview, ICafe } from '@/types'
 
 type SortOption = '-createdAt' | 'createdAt' | '-rating' | 'rating'
 
