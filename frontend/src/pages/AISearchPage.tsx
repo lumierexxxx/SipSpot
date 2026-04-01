@@ -3,24 +3,36 @@
 // AI对话式搜索页面 - 修复重复消息 + 新版式
 // ============================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FormEvent, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import CafeCard from '../components/CafeCard';
-import { useCurrentPosition } from '../hooks/useGeolocation';
+import CafeCard from '@components/CafeCard';
+import { useCurrentPosition } from '@hooks/useGeolocation';
+import type { ICafe } from '@/types';
+
+// ============================================
+
+interface ChatMessage {
+    type: 'user' | 'assistant'
+    content: string
+    timestamp: number
+    cafes: ICafe[]
+}
+
+// ============================================
 
 export default function AISearchPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const initialQuery = searchParams.get('query') || '';
-    
-    const [messages, setMessages] = useState([]);
-    const [inputMessage, setInputMessage] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [cafes, setCafes] = useState([]);
-    const [explanation, setExplanation] = useState(null);
-    const [explanationLoading, setExplanationLoading] = useState(false);
-    const messagesEndRef = useRef(null);
-    const hasInitialized = useRef(false); // 防止重复初始化
+
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [inputMessage, setInputMessage] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [cafes, setCafes] = useState<ICafe[]>([]);
+    const [explanation, setExplanation] = useState<string | null>(null);
+    const [explanationLoading, setExplanationLoading] = useState<boolean>(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const hasInitialized = useRef<boolean>(false); // 防止重复初始化
 
     // 尝试获取用户位置（但不强制要求）
     const { latitude, longitude, error: geoError } = useCurrentPosition();
@@ -35,7 +47,7 @@ export default function AISearchPage() {
     }, [latitude, longitude, geoError]);
 
     // 自动滚动到底部
-    const scrollToBottom = () => {
+    const scrollToBottom = (): void => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -64,16 +76,17 @@ export default function AISearchPage() {
     }, []); // 空依赖数组，只执行一次
 
     // AI 搜索处理
-    const handleAISearch = async (query) => {
+    const handleAISearch = async (query: string): Promise<void> => {
         if (!query.trim()) return;
 
         console.log('🔍 开始 AI 搜索:', query);
 
         // 添加用户消息
-        const userMessage = {
+        const userMessage: ChatMessage = {
             type: 'user',
             content: query,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            cafes: []
         };
         setMessages(prev => [...prev, userMessage]);
         setInputMessage('');
@@ -84,7 +97,7 @@ export default function AISearchPage() {
             console.log('📡 API URL:', apiUrl);
 
             // 准备请求体（包含用户位置，如果可用）
-            const requestBody = { query };
+            const requestBody: { query: string; lat?: number; lng?: number } = { query };
             if (latitude && longitude) {
                 requestBody.lat = latitude;
                 requestBody.lng = longitude;
@@ -118,7 +131,7 @@ export default function AISearchPage() {
             console.log('☕ 咖啡馆数量:', data.count);
 
             // 添加 AI 回复（包含咖啡馆数据）
-            const assistantMessage = {
+            const assistantMessage: ChatMessage = {
                 type: 'assistant',
                 content: data.explanation || '我为你找到了以下咖啡馆：',
                 timestamp: Date.now(),
@@ -145,7 +158,7 @@ export default function AISearchPage() {
                         },
                         body: JSON.stringify({
                             query,
-                            cafeNames: data.cafes.slice(0, 5).map(c => c.name)
+                            cafeNames: data.cafes.slice(0, 5).map((c: ICafe) => c.name)
                         })
                     })
                     .then(res => res.json())
@@ -164,8 +177,8 @@ export default function AISearchPage() {
 
         } catch (error) {
             console.error('💥 AI搜索失败:', error);
-            
-            const errorMessage = {
+
+            const errorMessage: ChatMessage = {
                 type: 'assistant',
                 content: `抱歉，搜索遇到了问题。请稍后再试或换个方式描述你的需求。`,
                 timestamp: Date.now(),
@@ -178,7 +191,7 @@ export default function AISearchPage() {
     };
 
     // 处理发送消息
-    const handleSendMessage = (e) => {
+    const handleSendMessage = (e: FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
         if (inputMessage.trim() && !isLoading) {
             handleAISearch(inputMessage);
@@ -186,7 +199,7 @@ export default function AISearchPage() {
     };
 
     // 重置对话
-    const handleReset = () => {
+    const handleReset = (): void => {
         hasInitialized.current = false;
         setMessages([{
             type: 'assistant',
@@ -280,17 +293,17 @@ export default function AISearchPage() {
                                                 {/* 咖啡馆图片 */}
                                                 {cafe.images && cafe.images.length > 0 && (
                                                     <img
-                                                        src={cafe.images[0].url}
+                                                        src={typeof cafe.images[0] === 'string' ? cafe.images[0] : (cafe.images[0]?.url ?? '')}
                                                         alt={cafe.name}
                                                         className="w-full h-24 object-cover rounded-lg mb-2"
                                                     />
                                                 )}
-                                                
+
                                                 {/* 咖啡馆名称 */}
                                                 <div className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">
                                                     {cafe.name}
                                                 </div>
-                                                
+
                                                 {/* 评分和价格 */}
                                                 <div className="flex items-center gap-2 text-xs">
                                                     <span className="flex items-center text-amber-600">
@@ -301,14 +314,14 @@ export default function AISearchPage() {
                                                         {'$'.repeat(cafe.price || 1)}
                                                     </span>
                                                 </div>
-                                                
+
                                                 {/* 地址 */}
                                                 <div className="text-xs text-gray-500 mt-1 line-clamp-1">
                                                     📍 {cafe.address}
                                                 </div>
                                             </button>
                                         ))}
-                                        
+
                                         {message.cafes.length > 3 && (
                                             <div className="text-xs text-gray-500 text-center py-2">
                                                 还有 {message.cafes.length - 3} 家，查看右侧完整列表 →
@@ -318,7 +331,7 @@ export default function AISearchPage() {
                                 )}
                             </div>
                         ))}
-                        
+
                         {/* 加载动画 */}
                         {isLoading && (
                             <div className="bg-gray-100 rounded-2xl px-4 py-3 max-w-[90%]">
@@ -332,7 +345,7 @@ export default function AISearchPage() {
                                 </div>
                             </div>
                         )}
-                        
+
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -359,11 +372,13 @@ export default function AISearchPage() {
                         <form onSubmit={handleSendMessage} className="space-y-2">
                             <textarea
                                 value={inputMessage}
-                                onChange={(e) => setInputMessage(e.target.value)}
-                                onKeyDown={(e) => {
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInputMessage(e.target.value)}
+                                onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
-                                        handleSendMessage(e);
+                                        if (inputMessage.trim() && !isLoading) {
+                                            handleAISearch(inputMessage);
+                                        }
                                     }
                                 }}
                                 placeholder="描述你想找的咖啡馆..."
@@ -397,7 +412,7 @@ export default function AISearchPage() {
                                             找到 <span className="font-bold text-amber-600">{cafes.length}</span> 家符合条件的咖啡馆
                                         </p>
                                     </div>
-                                    
+
                                     {/* 排序选项 */}
                                     <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500">
                                         <option>按评分排序</option>
@@ -452,7 +467,7 @@ export default function AISearchPage() {
                                 <p className="text-gray-600 mb-8">
                                     在左侧输入你的需求，AI 会帮你找到最合适的咖啡馆
                                 </p>
-                                
+
                                 {/* 示例查询 */}
                                 <div className="max-w-2xl mx-auto grid grid-cols-2 gap-4">
                                     {quickQuestions.map((question, index) => (
@@ -482,15 +497,15 @@ export default function AISearchPage() {
                     0%, 100% { transform: translateY(0); }
                     50% { transform: translateY(-0.5rem); }
                 }
-                
+
                 .animate-bounce {
                     animation: bounce 1s ease-in-out infinite;
                 }
-                
+
                 .animation-delay-100 {
                     animation-delay: 0.1s;
                 }
-                
+
                 .animation-delay-200 {
                     animation-delay: 0.2s;
                 }
