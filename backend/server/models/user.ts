@@ -266,8 +266,6 @@ const userSchema = new mongoose.Schema<any>({
 // ============================================
 // 索引
 // ============================================
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
 userSchema.index({ 'visited.cafe': 1 });
 userSchema.index({ favorites: 1 });
 userSchema.index({ 'preferences.lastUpdated': 1 });
