@@ -5,7 +5,7 @@
 
 import { useLocation, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Coffee, CheckCircle, Clock, Eye, Star, ArrowRight, Sparkles, MapPin, Plus, Home } from 'lucide-react';
+import { Coffee, CheckCircle, Clock, Eye, Star, Sparkles, MapPin, Plus, Home } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const STEPS = [
@@ -20,7 +20,12 @@ const TIPS = [
   { icon: Sparkles, title: '添加更多图片', desc: '拥有5张以上图片的店铺，点击量是图片较少店铺的3倍。' },
 ];
 
-function Particle({ x, delay }) {
+interface ParticleProps {
+  x: number
+  delay: number
+}
+
+function Particle({ x, delay }: ParticleProps) {
   return (
     <motion.div
       className="absolute text-amber-200 select-none pointer-events-none"
@@ -36,7 +41,7 @@ function Particle({ x, delay }) {
 
 export default function SubmitSuccessPage() {
   const location = useLocation();
-  const state = location.state;
+  const state = location.state as { cafeName?: string; city?: string } | null
   const cafeName = state?.cafeName || '您的咖啡店';
   const city = state?.city || '';
 
