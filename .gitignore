@@ -69,3 +69,9 @@ Thumbs.db
 
 # Yarn Integrity file
 .yarn-integrity
+# 本地开发文档（不推送到GitHub）
+docs/
+CLAUDE.md
+.superpowers/
+reference/
+*.pdf
